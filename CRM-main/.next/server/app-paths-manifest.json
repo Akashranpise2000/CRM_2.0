@@ -1,0 +1,9 @@
+{
+  "/companies/page": "app/companies/page.js",
+  "/leads/page": "app/leads/page.js",
+  "/import/page": "app/import/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/contacts/page": "app/contacts/page.js",
+  "/expenses/page": "app/expenses/page.js",
+  "/contacts/add/page": "app/contacts/add/page.js"
+}
