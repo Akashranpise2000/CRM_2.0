@@ -2,11 +2,23 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useCRMStore } from "@/lib/store";
 import type { Company } from "@/types";
-import { Mail, Phone, Building2, Globe, MapPin } from "lucide-react";
+import { Mail, Phone, Building2, Globe, MapPin, Users, ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+// Mapping function for importance levels
+const getImportanceLabel = (importance: string | undefined) => {
+  const mapping: { [key: string]: string } = {
+    'high': 'Highly Important',
+    'medium': 'Standard',
+    'low': 'Influencer'
+  };
+  return mapping[importance || ''] || importance || 'Standard';
+};
 
 export default function CompanyDetailDrawer({
   company,
@@ -17,6 +29,7 @@ export default function CompanyDetailDrawer({
   open: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const contacts = useCRMStore((state) => state.contacts);
   const opportunities = useCRMStore((state) => state.opportunities);
   const activities = useCRMStore((state) => state.activities);
@@ -105,7 +118,7 @@ export default function CompanyDetailDrawer({
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="font-medium">{company.poc?.name || 'N/A'}</p>
-              <Badge variant="outline">{company.poc?.importance || 'Standard'}</Badge>
+              <Badge variant="outline">{getImportanceLabel(company.poc?.importance)}</Badge>
             </CardContent>
           </Card>
 
@@ -186,7 +199,7 @@ export default function CompanyDetailDrawer({
                           {contact.role && <div>Role: {contact.role}</div>}
                           {contact.phone && <div>Phone: {contact.phone}</div>}
                           {contact.email && <div>Email: {contact.email}</div>}
-                          {contact.importance && <div>Importance: {contact.importance}</div>}
+                          {contact.importance && <div>Importance: {getImportanceLabel(contact.importance)}</div>}
                         </div>
                       ))}
                     </div>
@@ -215,7 +228,7 @@ export default function CompanyDetailDrawer({
                         <p className="text-sm text-muted-foreground">{contact.role}</p>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-xs">{contact.importance}</Badge>
+                    <Badge variant="outline" className="text-xs">{getImportanceLabel(contact.importance)}</Badge>
                   </div>
 
                   {contact.email && (
@@ -320,6 +333,33 @@ export default function CompanyDetailDrawer({
                   <Badge className="mt-2 capitalize">{activity.type}</Badge>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* ------------------ ALL CONTACTS ACCESS ------------------ */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Contacts</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm">View and manage all contacts</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/contacts')}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View All Contacts
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Access the full contacts directory to view, add, and manage all your business contacts.
+              </p>
             </CardContent>
           </Card>
 

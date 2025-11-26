@@ -22,6 +22,7 @@ const activityRoutes = require('./routes/activityRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const leadRoutes = require('./routes/leadRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const competitorRoutes = require('./routes/competitorRoutes');
 
 // Import middleware
 const { errorHandler } = require('./middlewares/errorMiddleware');
@@ -104,6 +105,7 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/competitors', competitorRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

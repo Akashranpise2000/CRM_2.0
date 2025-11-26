@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Building2, Target, Calendar, DollarSign, Upload, Settings, TrendingUp, Clock } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, Target, Calendar, DollarSign, Upload, Settings, TrendingUp, Clock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,13 @@ const navigation = [
     href: '/companies',
     icon: Building2,
     getCount: (store: any) => store.companyCount,
+    getStatus: () => 'default' as const
+  },
+  {
+    name: 'Competitors',
+    href: '/competitors',
+    icon: Zap,
+    getCount: () => 0,
     getStatus: () => 'default' as const
   },
   {

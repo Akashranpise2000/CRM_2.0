@@ -6,26 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Building2, Users, MapPin, Briefcase } from "lucide-react";
+import { Plus, Search, Building2, Users, MapPin, Briefcase, Upload, Filter, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { Company } from "@/types";
 
 import AddCompanyModal from "./AddCompanyModel";
 import EditCompanyModal from "./EditCompanyModal";
 import CompanyDetailDrawer from "./CompanyDetailDrawer";
 import CompaniesList from "./CompaniesList";
+import { CompanyImportDialog } from "@/components/companies/company-import-dialog";
 
 export default function CompaniesPage() {
   const [search, setSearch] = useState("");
-  const [industryFilter, setIndustryFilter] = useState("");
-  const [countryFilter, setCountryFilter] = useState("");
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [detailCompany, setDetailCompany] = useState<Company | null>(null);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const companies = useCRMStore((state) => state.companies);
+  const settings = useCRMStore((state) => state.settings);
   const fetchCompanies = useCRMStore((state) => state.fetchCompanies);
   const deleteCompany = useCRMStore((state) => state.deleteCompany);
+  const selectedCompany = useCRMStore((state) => state.selectedCompany);
+  const relatedContacts = useCRMStore((state) => state.relatedContacts);
+  const setSelectedCompany = useCRMStore((state) => state.setSelectedCompany);
+  const fetchContactsByCompany = useCRMStore((state) => state.fetchContactsByCompany);
 
   useEffect(() => {
     fetchCompanies();
@@ -40,29 +50,41 @@ export default function CompaniesPage() {
   ).length;
   const uniqueSectors = new Set(companies.map(c => c.sector || c.industry).filter(Boolean)).size;
 
+  // Get unique emails and phones for filter dropdowns
+  const availableEmails = Array.from(new Set(companies.map(c => c.email).filter((e): e is string => Boolean(e)))).sort();
+  const availablePhones = Array.from(new Set(companies.map(c => c.phone).filter((p): p is string => Boolean(p)))).sort();
+
   // ---------- FILTER LOGIC ----------
   const filteredCompanies = companies.filter((company) => {
+    const searchLower = search.toLowerCase();
     const matchesSearch =
-      company.name.toLowerCase().includes(search.toLowerCase()) ||
-      company.sector?.toLowerCase().includes(search.toLowerCase()) ||
-      company.poc?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      company.industry?.toLowerCase().includes(search.toLowerCase());
+      company.name.toLowerCase().includes(searchLower) ||
+      company.email?.toLowerCase().includes(searchLower) ||
+      company.phone?.toLowerCase().includes(searchLower) ||
+      company.sector?.toLowerCase().includes(searchLower) ||
+      company.poc?.name?.toLowerCase().includes(searchLower) ||
+      company.industry?.toLowerCase().includes(searchLower) ||
+      (company.contacts && Array.isArray(company.contacts) && company.contacts.some(contact =>
+        typeof contact === 'object' && contact.first_name &&
+        `${contact.first_name} ${contact.last_name}`.toLowerCase().includes(searchLower)
+      ));
 
-    const matchesSector =
-      !industryFilter || company.sector === industryFilter || company.industry === industryFilter;
+    const matchesEmail = !emailFilter || company.email === emailFilter;
 
-    const matchesCountry =
-      !countryFilter ||
-      company.country === countryFilter ||
-      (typeof company.address === 'object' && company.address && company.address.country === countryFilter);
+    const matchesPhone = !phoneFilter || company.phone === phoneFilter;
 
-    return matchesSearch && matchesSector && matchesCountry;
+    return matchesSearch && matchesEmail && matchesPhone;
   });
 
   // ---------- CLICK HANDLERS ----------
   const openCompanyDetails = (company: Company) => {
-    setSelectedCompany(company);
+    setDetailCompany(company);
     setShowDetailDrawer(true);
+  };
+
+  const handleCompanySelect = (company: Company) => {
+    setSelectedCompany(company);
+    fetchContactsByCompany(company.id);
   };
 
   const openEditModal = (company: Company) => {
@@ -91,10 +113,16 @@ export default function CompaniesPage() {
               </div>
             </div>
 
-            <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Company
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowImportDialog(true)} variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Import Companies
+              </Button>
+              <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Company
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -167,52 +195,127 @@ export default function CompaniesPage() {
               <div className="relative flex-1 min-w-80">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search companies by name, sector, or contact..."
+                  placeholder="Search companies by name, email, phone, sector, POC, or contact..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
-              <Select value={industryFilter || "all"} onValueChange={(value) => setIndustryFilter(value === "all" ? "" : value)}>
-                <SelectTrigger className="w-48 border-slate-300">
-                  <SelectValue placeholder="All Sectors" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sectors</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Real Estate">Real Estate</SelectItem>
-                  <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-                  <SelectItem value="Retail">Retail</SelectItem>
-                  <SelectItem value="Healthcare">Healthcare</SelectItem>
-                  <SelectItem value="Education">Education</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={countryFilter || "all"} onValueChange={(value) => setCountryFilter(value === "all" ? "" : value)}>
-                <SelectTrigger className="w-48 border-slate-300">
-                  <SelectValue placeholder="All Countries" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  <SelectItem value="India">India</SelectItem>
-                  <SelectItem value="USA">USA</SelectItem>
-                  <SelectItem value="UK">UK</SelectItem>
-                  <SelectItem value="Canada">Canada</SelectItem>
-                  <SelectItem value="Australia">Australia</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="relative w-full sm:w-auto"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+                {(emailFilter || phoneFilter) && (
+                  <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 text-xs">
+                    {(emailFilter ? 1 : 0) + (phoneFilter ? 1 : 0)}
+                  </Badge>
+                )}
+              </Button>
             </div>
+
+            {/* Filter Panel */}
+            {showFilters && (
+              <div className="rounded-lg border bg-card p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Filters</h3>
+                  {(emailFilter || phoneFilter) && (
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      setEmailFilter("");
+                      setPhoneFilter("");
+                    }}>
+                      <X className="mr-1 h-3 w-3" />
+                      Clear All
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email</label>
+                    <Select value={emailFilter || "all"} onValueChange={(value) => setEmailFilter(value === "all" ? "" : value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All emails" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All emails</SelectItem>
+                        {availableEmails.map((email) => (
+                          <SelectItem key={email} value={email}>
+                            {email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Phone</label>
+                    <Select value={phoneFilter || "all"} onValueChange={(value) => setPhoneFilter(value === "all" ? "" : value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All phones" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All phones</SelectItem>
+                        {availablePhones.map((phone) => (
+                          <SelectItem key={phone} value={phone}>
+                            {phone}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Quick Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Filter by keyword..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Filter Tags */}
+                {(emailFilter || phoneFilter) && (
+                  <>
+                    <Separator />
+                    <div className="flex flex-wrap gap-2">
+                      {emailFilter && (
+                        <Badge variant="secondary" className="gap-1">
+                          Email: {emailFilter}
+                          <X className="h-3 w-3 cursor-pointer" onClick={() => setEmailFilter("")} />
+                        </Badge>
+                      )}
+                      {phoneFilter && (
+                        <Badge variant="secondary" className="gap-1">
+                          Phone: {phoneFilter}
+                          <X className="h-3 w-3 cursor-pointer" onClick={() => setPhoneFilter("")} />
+                        </Badge>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Companies List */}
             <div className="pt-4">
               <CompaniesList
                 companies={filteredCompanies}
-                onSelect={(company) => openCompanyDetails(company)}
+                onSelect={(company) => {
+                  openCompanyDetails(company);
+                  handleCompanySelect(company);
+                }}
                 onEdit={(company) => openEditModal(company)}
                 onDelete={(company) => handleDelete(company)}
+                selectedCompany={selectedCompany}
               />
               {filteredCompanies.length === 0 && (
                 <div className="text-center py-12">
@@ -223,6 +326,46 @@ export default function CompaniesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Related Contacts Section */}
+        {selectedCompany && relatedContacts.length > 0 && (
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">
+                Contacts at {selectedCompany.name}
+              </CardTitle>
+              <p className="text-sm text-slate-600">
+                {relatedContacts.length} contact{relatedContacts.length !== 1 ? 's' : ''} associated with this company
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3">
+                {relatedContacts.map((contact) => (
+                  <div key={contact.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">
+                          {contact.first_name?.[0]}{contact.last_name?.[0]}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{contact.first_name} {contact.last_name}</p>
+                        <p className="text-sm text-slate-600">{contact.position || 'No position'}</p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {contact.email && (
+                        <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
+                          {contact.email}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* MODALS + DRAWER */}
         <AddCompanyModal
@@ -236,9 +379,14 @@ export default function CompaniesPage() {
         />
 
         <CompanyDetailDrawer
-          company={selectedCompany}
+          company={detailCompany}
           open={showDetailDrawer}
           onClose={() => setShowDetailDrawer(false)}
+        />
+
+        <CompanyImportDialog
+          open={showImportDialog}
+          onOpenChange={setShowImportDialog}
         />
       </div>
     </div>

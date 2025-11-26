@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Contact, Company, Opportunity, Activity, Expense, Settings, Lead } from '@/types';
+import type { Contact, Company, Opportunity, Activity, Expense, Settings, Lead, Competitor } from '@/types';
 import { apiClient } from './api';
 
 interface CRMStore {
@@ -8,6 +8,7 @@ interface CRMStore {
   opportunities: Opportunity[];
   activities: Activity[];
   expenses: Expense[];
+  competitors: Competitor[];
   settings: Settings | null;
   loading: boolean;
 
@@ -22,6 +23,7 @@ interface CRMStore {
   opportunitiesLoaded: boolean;
   activitiesLoaded: boolean;
   expensesLoaded: boolean;
+  competitorsLoaded: boolean;
   settingsLoaded: boolean;
 
   // Computed counts for performance
@@ -46,6 +48,12 @@ interface CRMStore {
   updateLead: (id: string, lead: Partial<Lead>) => Promise<void>;
   deleteLead: (id: string) => Promise<void>;
 
+  // COMPETITORS
+  fetchCompetitors: () => Promise<void>;
+  addCompetitor: (competitor: Omit<Competitor, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateCompetitor: (id: string, competitor: Partial<Competitor>) => Promise<void>;
+  deleteCompetitor: (id: string) => Promise<void>;
+
   fetchContacts: () => Promise<void>;
   fetchCompanies: () => Promise<void>;
   fetchOpportunities: () => Promise<void>;
@@ -53,9 +61,20 @@ interface CRMStore {
   fetchExpenses: () => Promise<void>;
   fetchSettings: (force?: boolean) => Promise<void>;
 
+  // Relationship management
+  selectedCompany: Company | null;
+  selectedContact: Contact | null;
+  relatedContacts: Contact[];
+  relatedCompanies: Company[];
+
+  setSelectedCompany: (company: Company | null) => void;
+  setSelectedContact: (contact: Contact | null) => void;
+  fetchContactsByCompany: (companyId: string) => Promise<void>;
+  fetchCompaniesByContact: (contactId: string) => Promise<void>;
+
   // Real-time subscriptions (removed - no longer needed)
 
-  addContact: (contact: Omit<Contact, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addContact: (contact: Omit<Contact, 'id' | 'created_at' | 'updated_at'>) => Promise<Contact>;
   importContacts: (contacts: Omit<Contact, 'id' | 'created_at' | 'updated_at'>[]) => Promise<void>;
   updateContact: (id: string, contact: Partial<Contact>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
@@ -78,7 +97,7 @@ interface CRMStore {
 
   updateSettings: (settings: Partial<Settings>) => Promise<void>;
 
-  importData: (data: { contacts?: Contact[]; companies?: Company[]; opportunities?: Opportunity[]; leads?: Lead[] }) => Promise<void>;
+  importData: (data: { contacts?: Contact[]; companies?: Company[]; opportunities?: Opportunity[]; leads?: Lead[]; competitors?: Competitor[] }) => Promise<void>;
 }
 
 
@@ -88,6 +107,7 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
   opportunities: [],
   activities: [],
   expenses: [],
+  competitors: [],
   settings: null,
   loading: false,
 
@@ -102,7 +122,14 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
   opportunitiesLoaded: false,
   activitiesLoaded: false,
   expensesLoaded: false,
+  competitorsLoaded: false,
   settingsLoaded: false,
+
+  // Relationship management
+  selectedCompany: null,
+  selectedContact: null,
+  relatedContacts: [],
+  relatedCompanies: [],
 
   // Computed counts
   contactCount: 0,
@@ -175,6 +202,95 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
     localStorage.setItem('leads', JSON.stringify(leads));
   },
 
+  // --------------------------
+  // COMPETITORS LOGIC
+  // --------------------------
+
+  fetchCompetitors: async () => {
+    // Skip if already loaded
+    if (get().competitorsLoaded) {
+      console.log('Competitors already loaded, skipping fetch');
+      return;
+    }
+
+    try {
+      console.log('Fetching competitors from API...');
+      const response = await apiClient.getCompetitors();
+      if (response.success) {
+        const competitors = (response.data as any[]).map((competitor) => ({
+          ...competitor,
+          id: competitor._id || competitor.id
+        })) || [];
+        set({ competitors, competitorsLoaded: true });
+        console.log('Competitors loaded:', competitors.length);
+      } else {
+        console.error('Failed to fetch competitors:', response.error);
+        set({ competitors: [], competitorsLoaded: false });
+      }
+    } catch (error) {
+      console.error('Error fetching competitors:', error);
+      set({ competitors: [], competitorsLoaded: false });
+    }
+  },
+
+  addCompetitor: async (competitor) => {
+    console.log('Adding competitor via API:', competitor);
+    try {
+      const response = await apiClient.createCompetitor(competitor);
+      if (response.success) {
+        const apiCompetitor = response.data as any;
+        const newCompetitor: Competitor = {
+          ...apiCompetitor,
+          id: apiCompetitor._id || apiCompetitor.id
+        };
+        set({ competitors: [newCompetitor, ...get().competitors] });
+        console.log('Competitor added successfully, total competitors:', get().competitors.length + 1);
+      } else {
+        throw new Error(response.error || 'Failed to create competitor');
+      }
+    } catch (error) {
+      console.error('Error adding competitor:', error);
+      throw error;
+    }
+  },
+
+  updateCompetitor: async (id, competitor) => {
+    console.log('Updating competitor via API:', id, competitor);
+    try {
+      const response = await apiClient.updateCompetitor(id, competitor);
+      if (response.success) {
+        const apiCompetitor = response.data as any;
+        const updatedCompetitor: Competitor = {
+          ...apiCompetitor,
+          id: apiCompetitor._id || apiCompetitor.id
+        };
+        set({ competitors: get().competitors.map(c => c.id === id ? updatedCompetitor : c) });
+        console.log('Competitor updated successfully');
+      } else {
+        throw new Error(response.error || 'Failed to update competitor');
+      }
+    } catch (error) {
+      console.error('Error updating competitor:', error);
+      throw error;
+    }
+  },
+
+  deleteCompetitor: async (id) => {
+    console.log('Deleting competitor via API:', id);
+    try {
+      const response = await apiClient.deleteCompetitor(id);
+      if (response.success) {
+        set({ competitors: get().competitors.filter(c => c.id !== id) });
+        console.log('Competitor deleted successfully');
+      } else {
+        throw new Error(response.error || 'Failed to delete competitor');
+      }
+    } catch (error) {
+      console.error('Error deleting competitor:', error);
+      throw error;
+    }
+  },
+
   fetchContacts: async () => {
     // Skip if already loaded
     if (get().contactsLoaded) {
@@ -188,6 +304,7 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
       if (response.success) {
         const contacts = (response.data as any[]).map((contact) => ({
           ...contact,
+          id: contact._id || contact.id,
           company: contact.company_id ? { ...contact.company_id, id: contact.company_id._id } : undefined
         }));
         const contactsMap = new Map(contacts.map(c => [c.id, c]));
@@ -215,7 +332,11 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
       console.log('Fetching companies from API...');
       const response = await apiClient.getCompanies();
       if (response.success) {
-        const companies = (response.data as Company[]) || [];
+        const companies = (response.data as any[]).map((company) => ({
+          ...company,
+          id: company._id || company.id,
+          contacts: company.contacts || [] // Ensure contacts is an array
+        })) || [];
         const companiesMap = new Map(companies.map(c => [c.id, c]));
         set({ companies, companiesMap, companiesLoaded: true });
         get().updateComputedCounts();
@@ -241,7 +362,23 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
       console.log('Fetching opportunities from API...');
       const response = await apiClient.getOpportunities();
       if (response.success) {
-        const opportunities = (response.data as Opportunity[]) || [];
+        const opportunities = (response.data as any[]).map((opportunity) => ({
+          ...opportunity,
+          id: opportunity._id || opportunity.id,
+          contact: opportunity.contact_id ? {
+            id: opportunity.contact_id._id || opportunity.contact_id.id,
+            first_name: opportunity.contact_id.first_name,
+            last_name: opportunity.contact_id.last_name,
+            email: opportunity.contact_id.email,
+            phone: opportunity.contact_id.phone,
+            position: opportunity.contact_id.position,
+            company: opportunity.contact_id.company_id ? {
+              id: opportunity.contact_id.company_id._id || opportunity.contact_id.company_id.id,
+              name: opportunity.contact_id.company_id.name,
+              industry: opportunity.contact_id.company_id.industry
+            } : undefined
+          } : undefined
+        })) || [];
         const opportunitiesMap = new Map(opportunities.map(o => [o.id, o]));
         set({ opportunities, opportunitiesMap, opportunitiesLoaded: true });
         get().updateComputedCounts();
@@ -299,7 +436,10 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
       console.log('Fetching expenses from API...');
       const response = await apiClient.getExpenses();
       if (response.success) {
-        set({ expenses: (response.data as Expense[]) || [], expensesLoaded: true });
+        set({ expenses: (response.data as any[]).map((expense) => ({
+          ...expense,
+          id: expense._id || expense.id
+        })) || [], expensesLoaded: true });
         get().updateComputedCounts();
         console.log('Expenses loaded:', (response.data as Expense[])?.length || 0);
       } else {
@@ -355,6 +495,43 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
     }
   },
 
+  // Relationship management functions
+  setSelectedCompany: (company) => {
+    set({ selectedCompany: company });
+  },
+
+  setSelectedContact: (contact) => {
+    set({ selectedContact: contact });
+  },
+
+  fetchContactsByCompany: async (companyId) => {
+    try {
+      const response = await apiClient.getContactsByCompany(companyId);
+      if (response.success) {
+        const contacts = (response.data as any[]).map((contact) => ({
+          ...contact,
+          id: contact._id || contact.id,
+          company: contact.company_id ? get().companiesMap.get(contact.company_id) : undefined
+        }));
+        set({ relatedContacts: contacts });
+      }
+    } catch (error) {
+      console.error('Error fetching contacts by company:', error);
+      set({ relatedContacts: [] });
+    }
+  },
+
+  fetchCompaniesByContact: async (contactId) => {
+    // For now, we'll just find the company from the contact data
+    // In a more complex system, this could be a separate API call
+    const contact = get().contacts.find(c => c.id === contactId);
+    if (contact?.company) {
+      set({ relatedCompanies: [contact.company] });
+    } else {
+      set({ relatedCompanies: [] });
+    }
+  },
+
   // Real-time subscriptions removed - no longer needed without Supabase
 
   addContact: async (contact) => {
@@ -369,7 +546,15 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
         };
         set({ contacts: [newContact, ...get().contacts] });
         console.log('Contact added successfully, total contacts:', get().contacts.length + 1);
+        return newContact;
       } else {
+        // Handle duplicate contact error
+        if (response.error === 'Contact already exists in the system.' && response.duplicate) {
+          const duplicateError = new Error(`Contact already exists in the system. Duplicate: ${response.duplicate.name}${response.duplicate.email ? ` (${response.duplicate.email})` : ''}${response.duplicate.phone ? ` (${response.duplicate.phone})` : ''}`);
+          duplicateError.name = 'DuplicateContactError';
+          (duplicateError as any).duplicate = response.duplicate;
+          throw duplicateError;
+        }
         throw new Error(response.error || 'Failed to create contact');
       }
     } catch (error) {
@@ -421,96 +606,146 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
   },
 
   deleteContact: async (id) => {
-    console.log('Deleting contact locally:', id);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    set({ contacts: get().contacts.filter(c => c.id !== id) });
-    console.log('Contact deleted successfully');
+    console.log('Deleting contact via API:', id);
+    try {
+      const response = await apiClient.deleteContact(id);
+      if (response.success) {
+        set({ contacts: get().contacts.filter(c => c.id !== id) });
+        console.log('Contact deleted successfully');
+      } else {
+        throw new Error(response.error || 'Failed to delete contact');
+      }
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      throw error;
+    }
   },
 
   addCompany: async (company) => {
-    console.log('Adding company locally:', company);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const newCompany: Company = {
-      ...company,
-      id: 'company-' + Date.now(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    set({ companies: [newCompany, ...get().companies] });
-    console.log('Company added successfully, total companies:', get().companies.length + 1);
+    console.log('Adding company via API:', company);
+    try {
+      const response = await apiClient.createCompany(company);
+      if (response.success) {
+        const apiCompany = response.data as any;
+        const newCompany: Company = {
+          ...apiCompany,
+          id: apiCompany._id || apiCompany.id
+        };
+        set({ companies: [newCompany, ...get().companies] });
+        console.log('Company added successfully, total companies:', get().companies.length + 1);
+      } else {
+        // Handle duplicate company error
+        if (response.error === 'Company already exists in the system.' && response.duplicate) {
+          const duplicateError = new Error(`Company already exists in the system. Duplicate: ${response.duplicate.name}${response.duplicate.email ? ` (${response.duplicate.email})` : ''}${response.duplicate.website ? ` (${response.duplicate.website})` : ''}`);
+          duplicateError.name = 'DuplicateCompanyError';
+          (duplicateError as any).duplicate = response.duplicate;
+          throw duplicateError;
+        }
+        throw new Error(response.error || 'Failed to create company');
+      }
+    } catch (error) {
+      console.error('Error adding company:', error);
+      throw error;
+    }
   },
 
   updateCompany: async (id, company) => {
-    console.log('Updating company locally:', id, company);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const updatedCompany: Company = {
-      ...get().companies.find(c => c.id === id)!,
-      ...company,
-      updated_at: new Date().toISOString()
-    };
-
-    set({ companies: get().companies.map(c => c.id === id ? updatedCompany : c) });
-    console.log('Company updated successfully');
+    console.log('Updating company via API:', id, company);
+    try {
+      const response = await apiClient.updateCompany(id, company);
+      if (response.success) {
+        const apiCompany = response.data as any;
+        const updatedCompany: Company = {
+          ...apiCompany,
+          id: apiCompany._id || apiCompany.id
+        };
+        set({ companies: get().companies.map(c => c.id === id ? updatedCompany : c) });
+        console.log('Company updated successfully');
+      } else {
+        throw new Error(response.error || 'Failed to update company');
+      }
+    } catch (error) {
+      console.error('Error updating company:', error);
+      throw error;
+    }
   },
 
   deleteCompany: async (id) => {
-    console.log('Deleting company locally:', id);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    set({ companies: get().companies.filter(c => c.id !== id) });
-    console.log('Company deleted successfully');
+    console.log('Deleting company via API:', id);
+    try {
+      const response = await apiClient.deleteCompany(id);
+      if (response.success) {
+        set({ companies: get().companies.filter(c => c.id !== id) });
+        console.log('Company deleted successfully');
+      } else {
+        throw new Error(response.error || 'Failed to delete company');
+      }
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      throw error;
+    }
   },
 
   addOpportunity: async (opportunity) => {
-    console.log('Adding opportunity locally:', opportunity);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const newOpportunity: Opportunity = {
-      ...opportunity,
-      id: 'opportunity-' + Date.now(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      company: opportunity.company_id ? get().companies.find(c => c.id === opportunity.company_id) : undefined,
-      contact: opportunity.contact_id ? get().contacts.find(c => c.id === opportunity.contact_id) : undefined
-    };
-
-    set({ opportunities: [newOpportunity, ...get().opportunities] });
-    console.log('Opportunity added successfully, total opportunities:', get().opportunities.length + 1);
+    console.log('Adding opportunity via API:', opportunity);
+    try {
+      const response = await apiClient.createOpportunity(opportunity);
+      if (response.success) {
+        const apiOpportunity = response.data as any;
+        const newOpportunity: Opportunity = {
+          ...apiOpportunity,
+          id: apiOpportunity._id || apiOpportunity.id,
+          company: apiOpportunity.company_id ? get().companies.find(c => c.id === apiOpportunity.company_id) : undefined,
+          contact: apiOpportunity.contact_id ? get().contacts.find(c => c.id === apiOpportunity.contact_id) : undefined
+        };
+        set({ opportunities: [newOpportunity, ...get().opportunities] });
+        console.log('Opportunity added successfully, total opportunities:', get().opportunities.length + 1);
+      } else {
+        throw new Error(response.error || 'Failed to create opportunity');
+      }
+    } catch (error) {
+      console.error('Error adding opportunity:', error);
+      throw error;
+    }
   },
 
   updateOpportunity: async (id, opportunity) => {
-    console.log('Updating opportunity locally:', id, opportunity);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const updatedOpportunity: Opportunity = {
-      ...get().opportunities.find(o => o.id === id)!,
-      ...opportunity,
-      updated_at: new Date().toISOString(),
-      company: opportunity.company_id ? get().companies.find(c => c.id === opportunity.company_id) : get().opportunities.find(o => o.id === id)?.company,
-      contact: opportunity.contact_id ? get().contacts.find(c => c.id === opportunity.contact_id) : get().opportunities.find(o => o.id === id)?.contact
-    };
-
-    set({ opportunities: get().opportunities.map(o => o.id === id ? updatedOpportunity : o) });
-    console.log('Opportunity updated successfully');
+    console.log('Updating opportunity via API:', id, opportunity);
+    try {
+      const response = await apiClient.updateOpportunity(id, opportunity);
+      if (response.success) {
+        const apiOpportunity = response.data as any;
+        const updatedOpportunity: Opportunity = {
+          ...apiOpportunity,
+          id: apiOpportunity._id || apiOpportunity.id,
+          company: apiOpportunity.company_id ? get().companies.find(c => c.id === apiOpportunity.company_id) : undefined,
+          contact: apiOpportunity.contact_id ? get().contacts.find(c => c.id === apiOpportunity.contact_id) : undefined
+        };
+        set({ opportunities: get().opportunities.map(o => o.id === id ? updatedOpportunity : o) });
+        console.log('Opportunity updated successfully');
+      } else {
+        throw new Error(response.error || 'Failed to update opportunity');
+      }
+    } catch (error) {
+      console.error('Error updating opportunity:', error);
+      throw error;
+    }
   },
 
   deleteOpportunity: async (id) => {
-    console.log('Deleting opportunity locally:', id);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    set({ opportunities: get().opportunities.filter(o => o.id !== id) });
-    console.log('Opportunity deleted successfully');
+    console.log('Deleting opportunity via API:', id);
+    try {
+      const response = await apiClient.deleteOpportunity(id);
+      if (response.success) {
+        set({ opportunities: get().opportunities.filter(o => o.id !== id) });
+        console.log('Opportunity deleted successfully');
+      } else {
+        throw new Error(response.error || 'Failed to delete opportunity');
+      }
+    } catch (error) {
+      console.error('Error deleting opportunity:', error);
+      throw error;
+    }
   },
 
   addActivity: async (activity) => {
@@ -648,7 +883,8 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
           get().fetchCompanies(),
           get().fetchOpportunities(),
           get().fetchActivities(),
-          get().fetchExpenses()
+          get().fetchExpenses(),
+          get().fetchCompetitors()
         ]);
         console.log('Data imported successfully');
       } else {

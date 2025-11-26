@@ -71,29 +71,8 @@ const companySchema = new mongoose.Schema({
     }
   },
   contacts: [{
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    role: {
-      type: String,
-      trim: true
-    },
-    phone: {
-      type: String,
-      trim: true
-    },
-    email: {
-      type: String,
-      lowercase: true,
-      trim: true
-    },
-    importance: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium'
-    }
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contact'
   }],
   employeeCount: {
     type: Number,
@@ -154,7 +133,7 @@ companySchema.index({ createdAt: -1 });
 companySchema.virtual('contactsCount', {
   ref: 'Contact',
   localField: '_id',
-  foreignField: 'company',
+  foreignField: 'company_id',
   count: true
 });
 
@@ -171,8 +150,8 @@ companySchema.pre('remove', async function(next) {
   try {
     // Update associated contacts to remove company reference
     await mongoose.model('Contact').updateMany(
-      { company: this._id },
-      { $unset: { company: 1 } }
+      { company_id: this._id },
+      { $unset: { company_id: 1 } }
     );
     // Remove associated opportunities
     await mongoose.model('Opportunity').deleteMany({ company: this._id });

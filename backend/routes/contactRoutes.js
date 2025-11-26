@@ -6,6 +6,7 @@ const {
   updateContact,
   deleteContact,
   getContactsByCompany,
+  getAllContacts,
   importContacts
 } = require('../controllers/contactController');
 
@@ -27,6 +28,9 @@ router.route('/:id')
 
 // Get contacts by company
 router.get('/company/:companyId', getContactsByCompany);
+
+// Get all contacts for dropdown
+router.get('/all', getAllContacts);
 
 // Import contacts
 router.post('/import', importContacts);

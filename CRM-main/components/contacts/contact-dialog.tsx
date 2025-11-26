@@ -9,6 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ContactDialogProps {
   open: boolean;
@@ -31,6 +40,8 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
   const addContact = useCRMStore((state) => state.addContact);
   const updateContact = useCRMStore((state) => state.updateContact);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateContact, setDuplicateContact] = useState<any>(null);
   const { toast } = useToast();
 
   const {
@@ -127,7 +138,7 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
           description: 'Contact has been updated successfully and will appear in real-time across all users.',
         });
       } else {
-        await addContact(cleanedData);
+        const newContact = await addContact(cleanedData);
         toast({
           title: 'Success',
           description: 'Contact has been created successfully and will appear in real-time across all users.',
@@ -135,13 +146,20 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
       }
       reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving contact:', error);
-      toast({
-        title: 'Error',
-        description: contact ? 'Failed to update contact. Please try again.' : 'Failed to create contact. Please try again.',
-        variant: 'destructive',
-      });
+
+      // Handle duplicate contact error
+      if (error.name === 'DuplicateContactError') {
+        setDuplicateContact((error as any).duplicate);
+        setShowDuplicateDialog(true);
+      } else {
+        toast({
+          title: 'Error',
+          description: contact ? 'Failed to update contact. Please try again.' : 'Failed to create contact. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -153,12 +171,13 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleCancel}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{contact ? 'Edit Contact' : 'Add Contact'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <>
+      <Dialog open={open} onOpenChange={handleCancel}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{contact ? 'Edit Contact' : 'Add Contact'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name *</Label>
@@ -276,8 +295,42 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
               )}
             </Button>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicate Contact Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              A contact with similar information already exists in the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {duplicateContact && (
+            <div className="space-y-2">
+              <div className="text-sm">
+                <strong>Name:</strong> {duplicateContact.name}
+              </div>
+              {duplicateContact.email && (
+                <div className="text-sm">
+                  <strong>Email:</strong> {duplicateContact.email}
+                </div>
+              )}
+              {duplicateContact.phone && (
+                <div className="text-sm">
+                  <strong>Phone:</strong> {duplicateContact.phone}
+                </div>
+              )}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDuplicateDialog(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

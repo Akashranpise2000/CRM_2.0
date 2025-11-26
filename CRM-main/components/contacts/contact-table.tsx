@@ -15,9 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ContactTableProps {
   contacts: Contact[];
+  selectedContact?: Contact | null;
+  onContactSelect?: (contact: Contact) => void;
 }
 
-export function ContactTable({ contacts }: ContactTableProps) {
+export function ContactTable({ contacts, selectedContact, onContactSelect }: ContactTableProps) {
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -129,13 +131,20 @@ export function ContactTable({ contacts }: ContactTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contacts.map((contact) => (
-              <TableRow key={contact.id}>
-                <TableCell>
-                  <Link 
-                    href={`/contacts/${contact.id}`} 
-                    className="flex items-center gap-3 hover:underline transition-colors"
-                  >
+            {contacts.map((contact) => {
+              const isSelected = selectedContact?.id === contact.id;
+              return (
+                <TableRow
+                  key={contact.id}
+                  className={`cursor-pointer ${isSelected ? 'bg-blue-50 border-blue-200' : 'hover:bg-muted/50'}`}
+                  onClick={() => onContactSelect?.(contact)}
+                >
+                  <TableCell>
+                    <Link
+                      href={`/contacts/${contact.id}`}
+                      className="flex items-center gap-3 hover:underline transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={contact.avatar_url || ''} />
                       <AvatarFallback className="text-xs">
@@ -196,7 +205,8 @@ export function ContactTable({ contacts }: ContactTableProps) {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>

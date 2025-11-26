@@ -40,13 +40,7 @@ export interface Company {
     name: string;
     importance: string;
   };
-  contacts?: {
-    name: string;
-    role?: string;
-    phone?: string;
-    email?: string;
-    importance?: string;
-  }[];
+  contacts?: string[] | Contact[]; // Array of contact IDs or populated Contact objects
 }
 
 export interface Opportunity {
@@ -107,10 +101,12 @@ export interface Expense {
   category?: string;
   date: string;
   opportunity_id?: string;
+  company_id?: string;
   description?: string;
   created_at?: string;
   updated_at?: string;
   opportunity?: Opportunity;
+  company?: Company;
 }
 
 export interface Settings {
@@ -125,11 +121,19 @@ export interface Settings {
 }
 
 export interface Competitor {
+  id?: string;
   name: string;
   strength: string;
   weakness: string;
   positionVsYou: string;
-  status: 'Winning' | 'Losing' | 'Equal';
+  status: 'Equal' | 'Superior' | 'Inferior';
+  marketShare?: number;
+  pricingModel?: string;
+  keyFeatures?: string;
+  customerBase?: string;
+  recentDevelopments?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 export interface Lead {
   id: string;

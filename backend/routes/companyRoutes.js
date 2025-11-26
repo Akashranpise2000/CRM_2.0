@@ -5,6 +5,7 @@ const {
   createCompany,
   updateCompany,
   deleteCompany,
+  getAllCompanies,
   getCompanyStats
 } = require('../controllers/companyController');
 
@@ -23,6 +24,9 @@ router.route('/:id')
   .get(getCompany)
   .put(updateCompany)
   .delete(deleteCompany);
+
+// Get all companies for dropdown
+router.get('/all', getAllCompanies);
 
 // Company statistics
 router.get('/stats/overview', getCompanyStats);

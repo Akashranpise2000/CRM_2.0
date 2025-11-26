@@ -21,7 +21,10 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import type { Lead } from "@/types";
+import { CompanyDropdown } from "@/components/ui/company-dropdown";
+import { ContactDropdown } from "@/components/ui/contact-dropdown";
+import type { Lead, Company } from "@/types";
+import type { ContactOption } from "@/hooks/use-contacts";
 
 export default function LeadFormModal({
   open,
@@ -43,6 +46,7 @@ export default function LeadFormModal({
     title: "",
     opportunity_type: "Manual",
     company_id: "",
+    contact_id: "",
     amount: "",
     forecast: "",
     description: "",
@@ -64,12 +68,16 @@ export default function LeadFormModal({
     competitors: [] as { name: string; strength: string; weakness: string; positionVsYou: string; status: string }[],
   });
 
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactOption | null>(null);
+
   useEffect(() => {
     if (leadToEdit) {
       setForm({
         title: leadToEdit.name || "",
         opportunity_type: "Manual",
         company_id: "",
+        contact_id: "",
         amount: leadToEdit.value ? String(leadToEdit.value) : "",
         forecast: leadToEdit.forecast || "",
         description: leadToEdit.notes || "",
@@ -93,6 +101,7 @@ export default function LeadFormModal({
         title: "",
         opportunity_type: "Manual",
         company_id: "",
+        contact_id: "",
         amount: "",
         forecast: "",
         description: "",
@@ -132,6 +141,7 @@ export default function LeadFormModal({
       email: '',
       phone: '',
       tags: [],
+      company: selectedCompany?.name || form.company_name || undefined,
     };
 
     try {
@@ -243,11 +253,15 @@ export default function LeadFormModal({
             <h3 className="text-lg font-semibold">Company Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Company Name</Label>
-                <Input
-                  value={form.company_name}
-                  onChange={(e) => handleChange("company_name", e.target.value)}
-                  placeholder="Enter company name"
+                <Label>Company</Label>
+                <CompanyDropdown
+                  value={form.company_id}
+                  onChange={(value, company) => {
+                    handleChange("company_id", value);
+                    setSelectedCompany(company || null);
+                  }}
+                  placeholder="Select or search company"
+                  allowCreate={true}
                 />
               </div>
               <div>
@@ -286,6 +300,19 @@ export default function LeadFormModal({
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Primary Contact</Label>
+              <ContactDropdown
+                value={form.contact_id}
+                onChange={(value, contact) => {
+                  handleChange("contact_id", value);
+                  setSelectedContact(contact || null);
+                }}
+                placeholder="Select or search contact"
+                allowCreate={true}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>POC Name</Label>

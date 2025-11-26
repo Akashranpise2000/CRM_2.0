@@ -35,7 +35,12 @@ export default function EditCompanyModal({
   const open = !!company;
 
   const sectors = ["IT", "Finance", "Real Estate", "Manufacturing", "Retail", "Healthcare", "Education", "Other"];
-  const importanceLevels = ["Highly Important", "Decision Maker", "Influencer", "Standard"];
+  const importanceLevels = [
+    { value: "high", label: "Highly Important" },
+    { value: "high", label: "Decision Maker" },
+    { value: "low", label: "Influencer" },
+    { value: "medium", label: "Standard" },
+  ];
 
   const [form, setForm] = useState<{
     name: string;
@@ -256,7 +261,7 @@ export default function EditCompanyModal({
                     </SelectTrigger>
                     <SelectContent>
                       {importanceLevels.map((level) => (
-                        <SelectItem key={level} value={level}>{level}</SelectItem>
+                        <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -393,7 +398,7 @@ export default function EditCompanyModal({
                       </SelectTrigger>
                       <SelectContent>
                         {importanceLevels.map((level) => (
-                          <SelectItem key={level} value={level}>{level}</SelectItem>
+                          <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

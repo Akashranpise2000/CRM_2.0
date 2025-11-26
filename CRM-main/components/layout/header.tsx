@@ -1,6 +1,7 @@
 'use client';
 
-import { Search, Bell, Menu, Plus, LogOut, User, Settings } from 'lucide-react';
+import React from 'react';
+import { Search, Bell, Menu, Plus, LogOut, User, Settings, Zap } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,17 +11,20 @@ import { useCRMStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Activity, Opportunity, Contact, Company } from '@/types';
 
 interface HeaderProps {
   onMenuClick?: () => void;
+  onCompetitorToggle?: () => void;
+  competitorCount?: number;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
-  const settings = useCRMStore((state) => state.settings);
-  const contacts = useCRMStore((state) => state.contacts);
-  const companies = useCRMStore((state) => state.companies);
-  const opportunities = useCRMStore((state) => state.opportunities);
-  const activities = useCRMStore((state) => state.activities);
+export function Header({ onMenuClick, onCompetitorToggle, competitorCount }: HeaderProps) {
+  const settings = useCRMStore((state: any) => state.settings);
+  const contacts = useCRMStore((state: any) => state.contacts);
+  const companies = useCRMStore((state: any) => state.companies);
+  const opportunities = useCRMStore((state: any) => state.opportunities);
+  const activities = useCRMStore((state: any) => state.activities);
   const { user, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -46,17 +50,17 @@ export function Header({ onMenuClick }: HeaderProps) {
   // Calculate notification count based on today's activities and high-priority opportunities
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todayActivities = activities.filter(activity =>
+    const todayActivities = activities.filter((activity: Activity) =>
       activity.start_time?.startsWith(today) && activity.status === 'scheduled'
     );
-    
-    const highPriorityOpps = opportunities.filter(opp =>
+
+    const highPriorityOpps = opportunities.filter((opp: Opportunity) =>
       opp.priority === 'high' && opp.status !== 'closed_win' && opp.status !== 'lost'
     );
 
     const notifications = [
-      ...todayActivities.map(a => ({ type: 'activity', title: a.title, time: a.start_time })),
-      ...highPriorityOpps.slice(0, 3).map(o => ({ type: 'opportunity', title: o.title, amount: o.amount }))
+      ...todayActivities.map((a: Activity) => ({ type: 'activity', title: a.title, time: a.start_time })),
+      ...highPriorityOpps.slice(0, 3).map((o: Opportunity) => ({ type: 'opportunity', title: o.title, amount: o.amount }))
     ];
 
     setNotificationCount(notifications.length);
@@ -80,14 +84,15 @@ export function Header({ onMenuClick }: HeaderProps) {
 
     // Search contacts
     contacts
-      .filter(contact =>
+      .filter((contact: Contact) =>
         contact.first_name?.toLowerCase().includes(query) ||
         contact.last_name?.toLowerCase().includes(query) ||
         contact.email?.toLowerCase().includes(query) ||
-        contact.phone?.includes(query)
+        contact.phone?.includes(query) ||
+        contact.company?.name?.toLowerCase().includes(query)
       )
       .slice(0, 3)
-      .forEach(contact => {
+      .forEach((contact: Contact) => {
         results.push({
           type: 'contact',
           title: `${contact.first_name} ${contact.last_name}`,
@@ -99,12 +104,12 @@ export function Header({ onMenuClick }: HeaderProps) {
 
     // Search companies
     companies
-      .filter(company =>
+      .filter((company: Company) =>
         company.name?.toLowerCase().includes(query) ||
         company.industry?.toLowerCase().includes(query)
       )
       .slice(0, 3)
-      .forEach(company => {
+      .forEach((company: Company) => {
         results.push({
           type: 'company',
           title: company.name,
@@ -116,12 +121,12 @@ export function Header({ onMenuClick }: HeaderProps) {
 
     // Search opportunities
     opportunities
-      .filter(opportunity =>
+      .filter((opportunity: Opportunity) =>
         opportunity.title?.toLowerCase().includes(query) ||
         opportunity.status?.toLowerCase().includes(query)
       )
       .slice(0, 3)
-      .forEach(opportunity => {
+      .forEach((opportunity: Opportunity) => {
         results.push({
           type: 'opportunity',
           title: opportunity.title,
@@ -134,10 +139,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     setSearchResults(results.slice(0, 8));
   }, [searchQuery, contacts, companies, opportunities]);
 
-  const handleSearchSelect = (result: any) => {
+  const handleSearchSelect = (result: { type: string; id: string }) => {
     setSearchQuery('');
     setIsSearchFocused(false);
-    
+
     switch (result.type) {
       case 'contact':
         router.push(`/contacts/${result.id}`);
@@ -178,7 +183,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             placeholder="Search contacts, companies, opportunities..."
             className="pl-10 pr-4"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
           />
@@ -186,7 +191,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           {/* Search Results Dropdown */}
           {isSearchFocused && searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-lg max-h-80 overflow-y-auto">
-              {searchResults.map((result, index) => (
+              {searchResults.map((result: { type: string; title: string; subtitle: string; id: string; icon: string }, index: number) => (
                 <button
                   key={index}
                   className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-accent transition-colors"
@@ -231,6 +236,18 @@ export function Header({ onMenuClick }: HeaderProps) {
           </PopoverContent>
         </Popover>
 
+        {/* Competitors */}
+        {onCompetitorToggle && (
+          <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-9 sm:w-9" onClick={onCompetitorToggle}>
+            <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
+            {competitorCount && competitorCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                {competitorCount > 99 ? '99+' : competitorCount}
+              </Badge>
+            )}
+          </Button>
+        )}
+
         {/* Notifications */}
         <Popover>
           <PopoverTrigger asChild>
@@ -256,7 +273,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               ) : (
                 <div className="p-2">
                   {/* Today's Activities */}
-                  {activities.filter(a => a.start_time?.startsWith(new Date().toISOString().split('T')[0]) && a.status === 'scheduled').map((activity) => (
+                  {activities.filter((a: Activity) => a.start_time?.startsWith(new Date().toISOString().split('T')[0]) && a.status === 'scheduled').map((activity: Activity) => (
                     <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-accent rounded-lg cursor-pointer">
                       <span className="text-lg">📅</span>
                       <div className="flex-1 min-w-0">
@@ -269,7 +286,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   ))}
                   
                   {/* High Priority Opportunities */}
-                  {opportunities.filter(o => o.priority === 'high' && o.status !== 'closed_win' && o.status !== 'lost').slice(0, 3).map((opportunity) => (
+                  {opportunities.filter((o: Opportunity) => o.priority === 'high' && o.status !== 'closed_win' && o.status !== 'lost').slice(0, 3).map((opportunity: Opportunity) => (
                     <div key={opportunity.id} className="flex items-start gap-3 p-3 hover:bg-accent rounded-lg cursor-pointer">
                       <span className="text-lg">🎯</span>
                       <div className="flex-1 min-w-0">

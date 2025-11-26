@@ -1,4 +1,5 @@
 const Contact = require('../models/Contact');
+const { linkContactToCompany, updateContactCompany } = require('../services/relationshipService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
 // @desc    Get all contacts
@@ -82,12 +83,56 @@ const getContact = asyncHandler(async (req, res) => {
 // @route   POST /api/contacts
 // @access  Private
 const createContact = asyncHandler(async (req, res) => {
+  const { first_name, last_name, email, phone } = req.body;
+
+  // Check for duplicate contacts
+  let duplicateQuery = { createdBy: req.user.id };
+
+  // Check by email if provided
+  if (email) {
+    duplicateQuery.email = email;
+  }
+
+  // Check by phone if provided and no email match
+  if (phone && !email) {
+    duplicateQuery.phone = phone;
+  }
+
+  // Check by name if neither email nor phone provided
+  if (!email && !phone && first_name && last_name) {
+    duplicateQuery.first_name = new RegExp(`^${first_name}$`, 'i');
+    duplicateQuery.last_name = new RegExp(`^${last_name}$`, 'i');
+  }
+
+  // If we have criteria to check, perform duplicate check
+  if (Object.keys(duplicateQuery).length > 1) { // More than just createdBy
+    const existingContact = await Contact.findOne(duplicateQuery);
+
+    if (existingContact) {
+      return res.status(409).json({
+        success: false,
+        error: 'Contact already exists in the system.',
+        duplicate: {
+          id: existingContact._id,
+          name: `${existingContact.first_name} ${existingContact.last_name}`,
+          email: existingContact.email,
+          phone: existingContact.phone
+        }
+      });
+    }
+  }
+
   const contactData = {
     ...req.body,
     createdBy: req.user.id
   };
 
   const contact = await Contact.create(contactData);
+
+  // Link to company if company_id is provided
+  if (contactData.company_id) {
+    await linkContactToCompany(contact._id, contactData.company_id, req.user.id);
+  }
 
   await contact.populate('company_id', 'name industry');
 
@@ -101,23 +146,33 @@ const createContact = asyncHandler(async (req, res) => {
 // @route   PUT /api/contacts/:id
 // @access  Private
 const updateContact = asyncHandler(async (req, res) => {
-  const contact = await Contact.findOneAndUpdate(
-    { _id: req.params.id, createdBy: req.user.id },
-    req.body,
-    { new: true, runValidators: true }
-  ).populate('company_id', 'name industry');
+   const contact = await Contact.findOne({ _id: req.params.id, createdBy: req.user.id });
 
-  if (!contact) {
-    return res.status(404).json({
-      success: false,
-      error: 'Contact not found'
-    });
-  }
+   if (!contact) {
+     return res.status(404).json({
+       success: false,
+       error: 'Contact not found'
+     });
+   }
 
-  res.status(200).json({
-    success: true,
-    data: contact
-  });
+   const oldCompanyId = contact.company_id;
+   const newCompanyId = req.body.company_id;
+
+   // Update contact
+   Object.assign(contact, req.body);
+   await contact.save();
+
+   // Handle company relationship change
+   if (newCompanyId !== oldCompanyId) {
+     await updateContactCompany(req.params.id, newCompanyId, req.user.id);
+   }
+
+   await contact.populate('company_id', 'name industry');
+
+   res.status(200).json({
+     success: true,
+     data: contact
+   });
 });
 
 // @desc    Delete contact
@@ -136,7 +191,7 @@ const deleteContact = asyncHandler(async (req, res) => {
     });
   }
 
-  await contact.remove();
+  await Contact.findByIdAndDelete(req.params.id);
 
   res.status(200).json({
     success: true,
@@ -149,7 +204,7 @@ const deleteContact = asyncHandler(async (req, res) => {
 // @access  Private
 const getContactsByCompany = asyncHandler(async (req, res) => {
   const contacts = await Contact.find({
-    company: req.params.companyId,
+    company_id: req.params.companyId,
     createdBy: req.user.id,
     isActive: true
   }).sort({ createdAt: -1 });
@@ -157,6 +212,42 @@ const getContactsByCompany = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: contacts
+  });
+});
+
+// @desc    Get all contacts for dropdown
+// @route   GET /api/contacts/all
+// @access  Private
+const getAllContacts = asyncHandler(async (req, res) => {
+  const contacts = await Contact.find({
+    createdBy: req.user.id,
+    isActive: true
+  })
+  .populate('company_id', 'name industry')
+  .select('first_name last_name email phone position')
+  .sort({ first_name: 1, last_name: 1 })
+  .lean();
+
+  // Filter out contacts with empty required fields and format for dropdown
+  const formattedContacts = contacts
+    .filter(contact => contact.first_name && contact.last_name && contact.email)
+    .map(contact => ({
+      id: contact._id,
+      name: `${contact.first_name} ${contact.last_name}`,
+      email: contact.email,
+      phone: contact.phone || '',
+      position: contact.position || '',
+      company: contact.company_id ? {
+        id: contact.company_id._id,
+        name: contact.company_id.name,
+        industry: contact.company_id.industry
+      } : null
+    }));
+
+  res.status(200).json({
+    success: true,
+    data: formattedContacts,
+    count: formattedContacts.length
   });
 });
 
@@ -194,5 +285,6 @@ module.exports = {
   updateContact,
   deleteContact,
   getContactsByCompany,
+  getAllContacts,
   importContacts
 };

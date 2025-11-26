@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -26,7 +26,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Opportunity } from '@/types';
+import { CompanyDropdown } from '@/components/ui/company-dropdown';
+import { ContactDropdown } from '@/components/ui/contact-dropdown';
+import { Opportunity, Company } from '@/types';
+import type { ContactOption } from '@/hooks/use-contacts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail, Phone, Building, User } from 'lucide-react';
 
 interface OpportunityDialogProps {
   open: boolean;
@@ -83,10 +88,7 @@ interface OpportunityFormData {
   amount: number;
   description?: string;
   products_pitched?: string[];
-  company_name: string;
-  company_address?: string;
-  company_city?: string;
-  company_country?: string;
+  company_id: string;
   contact_id?: string;
   forecast_amount: number;
   status: string;
@@ -111,10 +113,7 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
       amount: 0,
       description: '',
       products_pitched: [],
-      company_name: '',
-      company_address: '',
-      company_city: '',
-      company_country: '',
+      company_id: '',
       contact_id: undefined,
       forecast_amount: 0,
       status: 'quality',
@@ -129,6 +128,9 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
     },
   });
 
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactOption | null>(null);
+
   const status = form.watch('status');
 
   useEffect(() => {
@@ -141,10 +143,7 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
         amount: opportunity.amount,
         description: opportunity.description || '',
         products_pitched: opportunity.products_pitched || [],
-        company_name: opportunity.company?.name || '',
-        company_address: (typeof opportunity.company?.address === 'object' ? opportunity.company.address?.street : '') || '',
-        company_city: (typeof opportunity.company?.address === 'object' ? opportunity.company.address?.city : '') || '',
-        company_country: (typeof opportunity.company?.address === 'object' ? opportunity.company.address?.country : '') || '',
+        company_id: opportunity.company_id || '',
         contact_id: opportunity.contact_id || undefined,
         forecast_amount: opportunity.forecast_amount,
         status: opportunity.status,
@@ -157,6 +156,39 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
         stage: opportunity.stage || 'lead',
         importance: opportunity.importance || 1,
       });
+      setSelectedCompany(opportunity.company || null);
+
+      // Set selected contact if opportunity has a contact
+      if (opportunity.contact) {
+        setSelectedContact({
+          id: opportunity.contact.id,
+          name: `${opportunity.contact.first_name} ${opportunity.contact.last_name}`,
+          email: opportunity.contact.email || '',
+          phone: opportunity.contact.phone || '',
+          position: opportunity.contact.position || '',
+          company: opportunity.contact.company ? {
+            id: opportunity.contact.company.id,
+            name: opportunity.contact.company.name,
+            industry: opportunity.contact.company.industry || ''
+          } : null
+        });
+      } else if (opportunity.contact_id && contacts.length > 0) {
+        const contact = contacts.find(c => c.id === opportunity.contact_id);
+        if (contact) {
+          setSelectedContact({
+            id: contact.id,
+            name: `${contact.first_name} ${contact.last_name}`,
+            email: contact.email || '',
+            phone: contact.phone || '',
+            position: contact.position || '',
+            company: contact.company ? {
+              id: contact.company.id,
+              name: contact.company.name,
+              industry: contact.company.industry || ''
+            } : null
+          });
+        }
+      }
     } else {
       form.reset({
         title: '',
@@ -166,10 +198,7 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
         amount: 0,
         description: '',
         products_pitched: [],
-        company_name: '',
-        company_address: '',
-        company_city: '',
-        company_country: '',
+        company_id: '',
         contact_id: undefined,
         forecast_amount: 0,
         status: 'quality',
@@ -182,25 +211,17 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
         stage: 'lead',
         importance: 1,
       });
+      setSelectedCompany(null);
+      setSelectedContact(null);
     }
-  }, [opportunity, form]);
+  }, [opportunity, form, contacts]);
 
   const handleSubmit = async (data: OpportunityFormData) => {
-    // Validate required company name
-    if (!data.company_name.trim()) {
-      form.setError('company_name', { message: 'Company name is required' });
+    // Validate required company
+    if (!data.company_id.trim()) {
+      form.setError('company_id', { message: 'Company is required' });
       return;
     }
-
-    // Prepare company data
-    const companyData = {
-      name: data.company_name.trim(),
-      address: data.company_address || data.company_city || data.company_country ? {
-        street: data.company_address || undefined,
-        city: data.company_city || undefined,
-        country: data.company_country || undefined,
-      } : undefined,
-    };
 
     // Prepare opportunity data
     const opportunityData = {
@@ -211,7 +232,7 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
       amount: data.amount,
       description: data.description,
       products_pitched: data.products_pitched,
-      company_data: companyData, // Pass company data to be created
+      company_id: data.company_id,
       contact_id: data.contact_id || undefined,
       forecast_amount: data.forecast_amount,
       status: data.status,
@@ -349,67 +370,28 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
               )}
             />
 
-            {/* Company Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Company Information</h3>
-              <FormField
-                control={form.control}
-                name="company_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter company name" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="company_address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Street address" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="company_city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="City" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="company_country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Country" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+            {/* Company Selection */}
+            <FormField
+              control={form.control}
+              name="company_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company *</FormLabel>
+                  <FormControl>
+                    <CompanyDropdown
+                      value={field.value}
+                      onChange={(value, company) => {
+                        field.onChange(value);
+                        setSelectedCompany(company || null);
+                      }}
+                      placeholder="Select a company"
+                      allowCreate={true}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Contact Selection */}
             <FormField
@@ -418,24 +400,84 @@ export function OpportunityDialog({ open, onOpenChange, onSubmit, opportunity, c
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contact</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a contact (optional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {contacts.map((contact) => (
-                        <SelectItem key={contact.id} value={contact.id}>
-                          {contact.first_name} {contact.last_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ContactDropdown
+                      value={field.value || ''}
+                      onChange={(value, contact) => {
+                        field.onChange(value);
+                        setSelectedContact(contact || null);
+                      }}
+                      placeholder="Select a contact (optional)"
+                      allowCreate={true}
+                      contacts={contacts?.map(contact => ({
+                        id: contact.id,
+                        name: `${contact.first_name} ${contact.last_name}`,
+                        email: contact.email || '',
+                        phone: contact.phone || '',
+                        position: contact.position || '',
+                        company: contact.company ? {
+                          id: contact.company.id,
+                          name: contact.company.name,
+                          industry: contact.company.industry || ''
+                        } : null
+                      }))}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Selected Contact Details */}
+            {selectedContact && (
+              <Card className="border-blue-200 bg-blue-50/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Selected Contact Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center gap-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{selectedContact.name}</p>
+                        {selectedContact.position && (
+                          <p className="text-xs text-muted-foreground">{selectedContact.position}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedContact.email && (
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm">{selectedContact.email}</p>
+                      </div>
+                    )}
+
+                    {selectedContact.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm">{selectedContact.phone}</p>
+                      </div>
+                    )}
+
+                    {selectedContact.company && (
+                      <div className="flex items-center gap-3">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">{selectedContact.company.name}</p>
+                          {selectedContact.company.industry && (
+                            <p className="text-xs text-muted-foreground">{selectedContact.company.industry}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Amounts */}
             <div className="grid grid-cols-2 gap-4">

@@ -10,7 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CompanyDropdown } from '@/components/ui/company-dropdown';
 import { useToast } from '@/hooks/use-toast';
+import type { Company } from '@/types';
 
 interface ExpenseDialogProps {
   open: boolean;
@@ -24,6 +26,7 @@ interface ExpenseFormData {
   category: string;
   date: string;
   opportunity_id: string;
+  company_id: string;
   description: string;
 }
 
@@ -60,10 +63,13 @@ export function ExpenseDialog({ open, onOpenChange, expense }: ExpenseDialogProp
       category: '',
       date: new Date().toISOString().split('T')[0],
       opportunity_id: '',
+      company_id: '',
       description: '',
     },
     mode: 'onChange'
   });
+
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   useEffect(() => {
     if (expense) {
@@ -73,8 +79,10 @@ export function ExpenseDialog({ open, onOpenChange, expense }: ExpenseDialogProp
         category: expense.category || '',
         date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         opportunity_id: expense.opportunity_id || 'none',
+        company_id: expense.company?.id || '',
         description: expense.description || '',
       });
+      setSelectedCompany(expense.company || null);
     } else {
       reset({
         title: '',
@@ -82,8 +90,10 @@ export function ExpenseDialog({ open, onOpenChange, expense }: ExpenseDialogProp
         category: '',
         date: new Date().toISOString().split('T')[0],
         opportunity_id: 'none',
+        company_id: '',
         description: '',
       });
+      setSelectedCompany(null);
     }
   }, [expense, reset]);
 
@@ -96,6 +106,7 @@ export function ExpenseDialog({ open, onOpenChange, expense }: ExpenseDialogProp
         category: data.category || undefined,
         date: data.date,
         opportunity_id: data.opportunity_id === 'none' ? undefined : data.opportunity_id || undefined,
+        company_id: data.company_id || undefined,
         description: data.description?.trim() || undefined,
       };
 
@@ -223,6 +234,19 @@ export function ExpenseDialog({ open, onOpenChange, expense }: ExpenseDialogProp
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Related Company</Label>
+            <CompanyDropdown
+              value={watch('company_id')}
+              onChange={(value, company) => {
+                setValue('company_id', value);
+                setSelectedCompany(company || null);
+              }}
+              placeholder="Select company (optional)"
+              allowCreate={true}
+            />
           </div>
 
           <div className="space-y-2">

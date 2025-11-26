@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCRMStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Filter, X, Upload } from 'lucide-react';
+import { Plus, Search, Filter, X, Upload, Building2 } from 'lucide-react';
 import { ContactTable } from '@/components/contacts/contact-table';
 import { ContactImportDialog } from '@/components/contacts/contact-import-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,6 +28,10 @@ export default function ContactsPage() {
   const companies = useCRMStore((state) => state.companies);
   const fetchContacts = useCRMStore((state) => state.fetchContacts);
   const fetchCompanies = useCRMStore((state) => state.fetchCompanies);
+  const selectedContact = useCRMStore((state) => state.selectedContact);
+  const relatedCompanies = useCRMStore((state) => state.relatedCompanies);
+  const setSelectedContact = useCRMStore((state) => state.setSelectedContact);
+  const fetchCompaniesByContact = useCRMStore((state) => state.fetchCompaniesByContact);
 
   // Fetch initial data and set up real-time subscriptions
   useEffect(() => {
@@ -253,7 +257,45 @@ export default function ContactsPage() {
         )}
       </div>
 
-      <ContactTable contacts={filteredContacts} />
+      <ContactTable
+        contacts={filteredContacts}
+        selectedContact={selectedContact}
+        onContactSelect={(contact) => {
+          setSelectedContact(contact);
+          fetchCompaniesByContact(contact.id);
+        }}
+      />
+
+      {/* Related Companies Section */}
+      {selectedContact && relatedCompanies.length > 0 && (
+        <div className="rounded-lg border bg-card p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            Company Associated with {selectedContact.first_name} {selectedContact.last_name}
+          </h3>
+          <div className="grid gap-3">
+            {relatedCompanies.map((company) => (
+              <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{company.name}</p>
+                    <p className="text-sm text-muted-foreground">{company.industry || 'No industry specified'}</p>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {company.website && (
+                    <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      Visit Website
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <ContactImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
     </div>

@@ -10,13 +10,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useToast } from '@/hooks/use-toast';
+import { CompanyDropdown } from '@/components/ui/company-dropdown';
 import { Building2, User, Mail, Phone, MapPin, Briefcase, Users } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import type { Company } from '@/types';
 
 interface ContactFormData {
   name: string;
   title: string;
-  current_company: string;
+  company_id: string;
   past_companies: string;
   reporting_manager: string;
   phone: string;
@@ -62,7 +64,7 @@ export function AddContactForm({
     defaultValues: {
       name: '',
       title: '',
-      current_company: '',
+      company_id: '',
       past_companies: '',
       reporting_manager: '',
       phone: '',
@@ -76,6 +78,8 @@ export function AddContactForm({
     },
     mode: 'onChange',
   });
+
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   const handleSubmit = createHandleSubmit(onSubmit);
 
@@ -93,7 +97,10 @@ export function AddContactForm({
   const filteredManagers = contacts.filter((contact) =>
     `${contact.first_name} ${contact.last_name}`
       .toLowerCase()
-      .includes(managerSearchQuery.toLowerCase())
+      .includes(managerSearchQuery.toLowerCase()) ||
+    contact.email?.toLowerCase().includes(managerSearchQuery.toLowerCase()) ||
+    contact.position?.toLowerCase().includes(managerSearchQuery.toLowerCase()) ||
+    contact.company?.name?.toLowerCase().includes(managerSearchQuery.toLowerCase())
   );
 
   return (
@@ -182,25 +189,24 @@ export function AddContactForm({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current_company">Current Company</Label>
-                  <Input
-                    id="current_company"
-                    placeholder="Enter current company name"
-                    {...register('current_company', {
-                      onChange: (e) => {
-                        const value = e.target.value;
-                        // Check if typed name matches an existing company
-                        const matchingCompany = companies.find(c => c.name.toLowerCase() === value.toLowerCase());
-                        if (matchingCompany?.address && typeof matchingCompany.address === 'object') {
-                          const address = matchingCompany.address as { street?: string; city?: string; state?: string; country?: string; zipCode?: string };
-                          setValue('address_street', address.street || '');
-                          setValue('address_city', address.city || '');
-                          setValue('address_state', address.state || '');
-                          setValue('address_country', address.country || '');
-                          setValue('address_postal_code', address.zipCode || '');
-                        }
+                  <Label>Current Company</Label>
+                  <CompanyDropdown
+                    value={watch('company_id')}
+                    onChange={(value, company) => {
+                      setValue('company_id', value);
+                      setSelectedCompany(company || null);
+                      // Auto-fill address if company has address
+                      if (company?.address && typeof company.address === 'object') {
+                        const address = company.address as { street?: string; city?: string; state?: string; country?: string; zipCode?: string };
+                        setValue('address_street', address.street || '');
+                        setValue('address_city', address.city || '');
+                        setValue('address_state', address.state || '');
+                        setValue('address_country', address.country || '');
+                        setValue('address_postal_code', address.zipCode || '');
                       }
-                    })}
+                    }}
+                    placeholder="Select or search company"
+                    allowCreate={true}
                   />
                 </div>
 
@@ -400,6 +406,7 @@ export function AddContactForm({
             <ContactPreviewCard
               formValues={formValues}
               companies={companies}
+              selectedCompany={selectedCompany}
             />
           </div>
         </div>
@@ -421,9 +428,10 @@ export function AddContactForm({
 interface ContactPreviewCardProps {
   formValues: ContactFormData;
   companies: any[];
+  selectedCompany: Company | null;
 }
 
-function ContactPreviewCard({ formValues, companies }: ContactPreviewCardProps) {
+function ContactPreviewCard({ formValues, companies, selectedCompany }: ContactPreviewCardProps) {
   return (
     <div className="sticky top-6">
       <Card>
@@ -453,7 +461,7 @@ function ContactPreviewCard({ formValues, companies }: ContactPreviewCardProps) 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-1">Company</h3>
             <p className="text-sm">
-              {formValues.current_company || <span className="text-muted-foreground">Not entered</span>}
+              {selectedCompany?.name || <span className="text-muted-foreground">Not entered</span>}
             </p>
           </div>
 

@@ -10,7 +10,12 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
-  "keywords": ["crm", "mongodb", "express", "nodejs"],
+  "keywords": [
+    "crm",
+    "mongodb",
+    "express",
+    "nodejs"
+  ],
   "author": "CRM Team",
   "license": "MIT",
   "dependencies": {

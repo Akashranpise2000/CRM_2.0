@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useCRMStore } from "@/lib/store";
 import {
   Dialog,
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,18 +20,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Check, ChevronsUpDown, User } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ContactDropdown } from "@/components/ui/contact-dropdown";
 
 // Constants for dropdown options
 const IMPORTANCE_LEVELS = [
-  { value: "Highly Important", label: "Highly Important" },
-  { value: "Decision Maker", label: "Decision Maker" },
-  { value: "Standard", label: "Standard" },
-  { value: "Influencer", label: "Influencer" },
+  { value: "high", label: "Highly Important" },
+  { value: "medium", label: "Decision Maker" },
+  { value: "medium", label: "Standard" },
+  { value: "low", label: "Influencer" },
 ];
-
-const sectors = ["IT", "Finance", "Real Estate", "Manufacturing", "Retail", "Healthcare", "Education", "Other"];
 
 export default function AddCompanyModal({
   open,
@@ -40,7 +49,11 @@ export default function AddCompanyModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const addCompany = useCRMStore((state) => state.addCompany);
+  const addContact = useCRMStore((state) => state.addContact);
+  const contacts = useCRMStore((state) => state.contacts);
+  const fetchContacts = useCRMStore((state) => state.fetchContacts);
   const settings = useCRMStore((state) => state.settings);
   const fetchSettings = useCRMStore((state) => state.fetchSettings);
 
@@ -62,16 +75,21 @@ export default function AddCompanyModal({
       country: "",
       pincode: "",
     },
-    contacts: [] as { name: string; role: string; phone: string; email: string; importance: string }[],
+    contacts: [] as string[], // Array of contact IDs
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateCompany, setDuplicateCompany] = useState<any>(null);
 
   useEffect(() => {
-    if (open && !settings) {
-      fetchSettings();
+    if (open) {
+      if (!settings) {
+        fetchSettings();
+      }
+      fetchContacts();
     }
-  }, [open, settings, fetchSettings]);
+  }, [open, settings, fetchSettings, fetchContacts]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -93,19 +111,17 @@ export default function AddCompanyModal({
   };
 
 
-  const addContact = () => {
+  const addContactToForm = () => {
     setForm(prev => ({
       ...prev,
-      contacts: [...prev.contacts, { name: "", role: "", phone: "", email: "", importance: "" }]
+      contacts: [...prev.contacts, ""]
     }));
   };
 
-  const updateContact = (index: number, field: string, value: string) => {
+  const updateContact = (index: number, contactId: string) => {
     setForm(prev => ({
       ...prev,
-      contacts: prev.contacts.map((contact, i) =>
-        i === index ? { ...contact, [field]: value } : contact
-      )
+      contacts: prev.contacts.map((c, i) => i === index ? contactId : c)
     }));
   };
 
@@ -115,6 +131,8 @@ export default function AddCompanyModal({
       contacts: prev.contacts.filter((_, i) => i !== index)
     }));
   };
+
+
 
   const handleClear = () => {
     setForm({
@@ -173,13 +191,7 @@ export default function AddCompanyModal({
           country: form.address.country.trim(),
           pincode: form.address.pincode.trim(),
         } : undefined,
-        contacts: form.contacts.filter(contact => contact.name.trim()).map(contact => ({
-          name: contact.name.trim(),
-          role: contact.role.trim() || undefined,
-          phone: contact.phone.trim() || undefined,
-          email: contact.email.trim() || undefined,
-          importance: contact.importance.trim() || undefined,
-        })),
+        contacts: form.contacts.filter(contactId => contactId.trim()),
         // Also set legacy fields for database compatibility
         industry: form.sector.trim() || undefined,
         address: [form.address.street.trim(), form.address.city.trim()].filter(Boolean).join(', '),
@@ -199,16 +211,30 @@ export default function AddCompanyModal({
       onClose();
     } catch (error: any) {
       console.error("Error adding company:", error);
-      toast.error("Failed to add company", {
-        description: error?.message || 'Unknown error occurred. Please try again.',
-      });
+
+      // Handle duplicate company error
+      if (error.name === 'DuplicateCompanyError') {
+        setDuplicateCompany((error as any).duplicate);
+        setShowDuplicateDialog(true);
+      }
+      // Handle duplicate contact error
+      else if (error.name === 'DuplicateContactError' || error?.message?.includes('Contact already exists')) {
+        toast.error("Duplicate Contact Detected", {
+          description: error.message || 'A contact with similar details already exists in the system.',
+        });
+      } else {
+        toast.error("Failed to add company", {
+          description: error?.message || 'Unknown error occurred. Please try again.',
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-2xl font-bold text-gray-900">Add New Company</DialogTitle>
@@ -246,7 +272,7 @@ export default function AddCompanyModal({
                       <SelectValue placeholder="Select sector/category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sectors.map((sector) => (
+                      {(settings?.sectors || []).map((sector) => (
                         <SelectItem key={sector} value={sector}>
                           {sector}
                         </SelectItem>
@@ -422,13 +448,25 @@ export default function AddCompanyModal({
                 <h3 className="text-xl font-semibold text-gray-900">Additional Contacts</h3>
                 <p className="text-sm text-gray-600 mt-1">Add multiple contact persons for this company</p>
               </div>
-              <Button type="button" variant="default" size="sm" onClick={addContact} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Contact
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="default" size="sm" onClick={addContactToForm} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Contact
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/contacts/add')}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Create New Contact
+                </Button>
+              </div>
             </div>
 
-            {form.contacts.map((contact, index) => (
+            {form.contacts.map((contactId, index) => (
               <div key={index} className="p-6 border border-gray-200 rounded-lg bg-gray-50 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-lg font-medium text-gray-900">Contact {index + 1}</h4>
@@ -443,68 +481,17 @@ export default function AddCompanyModal({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Name</Label>
-                    <Input
-                      value={contact.name}
-                      onChange={(e) => updateContact(index, 'name', e.target.value)}
-                      placeholder="Contact name"
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Role</Label>
-                    <Input
-                      value={contact.role}
-                      onChange={(e) => updateContact(index, 'role', e.target.value)}
-                      placeholder="Job role"
-                      className="h-11"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Phone</Label>
-                    <Input
-                      value={contact.phone}
-                      onChange={(e) => updateContact(index, 'phone', e.target.value)}
-                      placeholder="Phone number"
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Email</Label>
-                    <Input
-                      value={contact.email}
-                      onChange={(e) => updateContact(index, 'email', e.target.value)}
-                      placeholder="Email address"
-                      className="h-11"
-                    />
-                  </div>
-                </div>
-
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Importance</Label>
-                  <Select
-                    value={contact.importance}
-                    onValueChange={(value) => updateContact(index, 'importance', value)}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select importance level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {IMPORTANCE_LEVELS.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-sm font-medium">Select Contact</Label>
+                  <ContactDropdown
+                    value={contactId}
+                    onChange={(value) => updateContact(index, value)}
+                    placeholder="Select a contact..."
+                    allowCreate={false}
+                    onCreateNew={() => router.push('/contacts/add')}
+                  />
                 </div>
+
               </div>
             ))}
           </div>
@@ -526,5 +513,45 @@ export default function AddCompanyModal({
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Duplicate Company Found</AlertDialogTitle>
+          <AlertDialogDescription>
+            A company with similar information already exists in the system.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {duplicateCompany && (
+          <div className="space-y-2">
+            <div className="text-sm">
+              <strong>Name:</strong> {duplicateCompany.name}
+            </div>
+            {duplicateCompany.email && (
+              <div className="text-sm">
+                <strong>Email:</strong> {duplicateCompany.email}
+              </div>
+            )}
+            {duplicateCompany.website && (
+              <div className="text-sm">
+                <strong>Website:</strong> {duplicateCompany.website}
+              </div>
+            )}
+            {duplicateCompany.industry && (
+              <div className="text-sm">
+                <strong>Industry:</strong> {duplicateCompany.industry}
+              </div>
+            )}
+          </div>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={() => setShowDuplicateDialog(false)}>
+            OK
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+

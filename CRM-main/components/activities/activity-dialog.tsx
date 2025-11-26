@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Phone, Mail, User, Building2, Target, Clock } from 'lucide-react';
+import { ContactDropdown } from '@/components/ui/contact-dropdown';
+import type { ContactOption } from '@/hooks/use-contacts';
 
 interface ActivityDialogProps {
   open: boolean;
@@ -380,20 +382,25 @@ export function ActivityDialog({ open, onOpenChange, activity, selectedDate }: A
 
           <div className="space-y-2">
             <Label htmlFor="contact_id">Related Contact</Label>
-            <Select value={watchedContactId || 'none'} onValueChange={(value) => setValue('contact_id', value === 'none' ? '' : value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select contact" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No contact</SelectItem>
-                {contacts.map((contact) => (
-                  <SelectItem key={contact.id} value={contact.id}>
-                    {contact.first_name} {contact.last_name}
-                    {contact.company && ` - ${contact.company.name}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ContactDropdown
+              value={watchedContactId || ''}
+              onChange={(value, contact) => {
+                setValue('contact_id', value || '');
+              }}
+              placeholder="Search and select contact"
+              contacts={contacts?.map(contact => ({
+                id: contact.id,
+                name: `${contact.first_name} ${contact.last_name}`,
+                email: contact.email || '',
+                phone: contact.phone || '',
+                position: contact.position || '',
+                company: contact.company ? {
+                  id: contact.company.id,
+                  name: contact.company.name,
+                  industry: contact.company.industry || ''
+                } : null
+              }))}
+            />
           </div>
 
           <div className="space-y-2">
@@ -424,7 +431,9 @@ export function ActivityDialog({ open, onOpenChange, activity, selectedDate }: A
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No opportunity</SelectItem>
-                {opportunities.map((opportunity) => (
+                {opportunities
+                  .filter(opportunity => !opportunity.id.startsWith('opportunity-')) // Only show saved opportunities
+                  .map((opportunity) => (
                   <SelectItem key={opportunity.id} value={opportunity.id}>
                     {opportunity.title}
                   </SelectItem>

@@ -11,11 +11,13 @@ export default function CompaniesList({
   onSelect,
   onEdit,
   onDelete,
+  selectedCompany,
 }: {
   companies: Company[];
   onSelect: (company: Company) => void;
   onEdit: (company: Company) => void;
   onDelete: (company: Company) => void;
+  selectedCompany?: Company | null;
 }) {
   return (
     <div className="space-y-6">
@@ -26,10 +28,14 @@ export default function CompaniesList({
         const hasAddress = (addressString && addressString.trim()) ||
                           (addressObj && (addressObj.street || addressObj.city || addressObj.state || addressObj.country || addressObj.zipCode));
 
+        const isSelected = selectedCompany?.id === company.id;
+
         return (
           <Card
             key={company.id}
-            className="p-6 hover:shadow-lg transition cursor-pointer"
+            className={`p-6 hover:shadow-lg transition cursor-pointer ${
+              isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+            }`}
             onClick={() => onSelect(company)}
           >
             <div className="flex justify-between items-start mb-4">

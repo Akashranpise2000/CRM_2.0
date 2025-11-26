@@ -6,11 +6,20 @@ import { useForm } from 'react-hook-form';
 import { useCRMStore } from '@/lib/store';
 import { AddContactForm } from '@/components/contacts/add-contact-form';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ContactFormData {
   name: string;
   title: string;
-  current_company: string;
+  company_id: string;
   past_companies: string;
   reporting_manager: string;
   phone: string;
@@ -31,6 +40,8 @@ export default function AddContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [managerSearchQuery, setManagerSearchQuery] = useState('');
   const [showManagerDropdown, setShowManagerDropdown] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateContact, setDuplicateContact] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,9 +62,22 @@ export default function AddContactPage() {
       let companyId = undefined;
 
       // Handle company association
-      if (data.current_company) {
+      if (data.company_id) {
+        // Find existing company by ID
+        let company = companies.find(c => c.id === data.company_id);
+
+        if (!company) {
+          // Company doesn't exist, this shouldn't happen with the dropdown
+          console.warn('Company not found for ID:', data.company_id);
+        } else {
+          companyId = company.id;
+        }
+      }
+
+      // Legacy handling for current_company if it exists (for backward compatibility)
+      if ((data as any).current_company && !(data as any).company_id) {
         // Find existing company by name
-        let company = companies.find(c => c.name.toLowerCase() === data.current_company.toLowerCase());
+        let company = companies.find(c => c.name.toLowerCase() === (data as any).current_company.toLowerCase());
 
         if (!company) {
           // Company doesn't exist, create it
@@ -64,7 +88,7 @@ export default function AddContactPage() {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                name: data.current_company,
+                name: (data as any).current_company,
                 // Add other company fields if available from address
                 address: data.address_street || data.address_city || data.address_state || data.address_country ? {
                   street: data.address_street,
@@ -112,7 +136,7 @@ export default function AddContactPage() {
         },
       };
 
-      await addContact(contactData);
+      const newContact = await addContact(contactData);
 
       toast({
         title: 'Success',
@@ -120,13 +144,20 @@ export default function AddContactPage() {
       });
 
       router.push('/contacts');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating contact:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create contact. Please try again.',
-        variant: 'destructive',
-      });
+
+      // Handle duplicate contact error
+      if (error.name === 'DuplicateContactError') {
+        setDuplicateContact((error as any).duplicate);
+        setShowDuplicateDialog(true);
+      } else {
+        toast({
+          title: 'Error',
+          description: error?.message || 'Failed to create contact. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -137,14 +168,49 @@ export default function AddContactPage() {
   };
 
   return (
-    <AddContactForm
-      onSubmit={onSubmit}
-      onCancel={handleCancel}
-      isSubmitting={isSubmitting}
-      managerSearchQuery={managerSearchQuery}
-      showManagerDropdown={showManagerDropdown}
-      onManagerSearchChange={setManagerSearchQuery}
-      setShowManagerDropdown={setShowManagerDropdown}
-    />
+    <>
+      <AddContactForm
+        onSubmit={onSubmit}
+        onCancel={handleCancel}
+        isSubmitting={isSubmitting}
+        managerSearchQuery={managerSearchQuery}
+        showManagerDropdown={showManagerDropdown}
+        onManagerSearchChange={setManagerSearchQuery}
+        setShowManagerDropdown={setShowManagerDropdown}
+      />
+
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicate Contact Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              A contact with similar information already exists in the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {duplicateContact && (
+            <div className="space-y-2">
+              <div className="text-sm">
+                <strong>Name:</strong> {duplicateContact.name}
+              </div>
+              {duplicateContact.email && (
+                <div className="text-sm">
+                  <strong>Email:</strong> {duplicateContact.email}
+                </div>
+              )}
+              {duplicateContact.phone && (
+                <div className="text-sm">
+                  <strong>Phone:</strong> {duplicateContact.phone}
+                </div>
+              )}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDuplicateDialog(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

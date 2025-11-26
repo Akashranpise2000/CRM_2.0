@@ -4,6 +4,14 @@ interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  duplicate?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    industry?: string;
+  };
   pagination?: {
     page: number;
     limit: number;
@@ -45,6 +53,12 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
       const data = await response.json();
+
+      // For API responses with success field, return the data regardless of status code
+      // This allows handling of business logic errors (like duplicates) in the calling code
+      if (data && typeof data === 'object' && 'success' in data) {
+        return data;
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'API request failed');
@@ -100,6 +114,14 @@ class ApiClient {
     });
   }
 
+  async getAllContacts() {
+    return this.request('/contacts/all');
+  }
+
+  async getContactsByCompany(companyId: string) {
+    return this.request(`/contacts/company/${companyId}`);
+  }
+
   // Companies
   async getCompanies(params?: { page?: number; limit?: number; search?: string }) {
     const queryParams = new URLSearchParams();
@@ -132,6 +154,10 @@ class ApiClient {
     return this.request(`/companies/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async getAllCompanies() {
+    return this.request('/companies/all');
   }
 
   // Opportunities
@@ -296,15 +322,50 @@ class ApiClient {
     });
   }
 
+  // Competitors
+  async getCompetitors(params?: { page?: number; limit?: number; search?: string; status?: string }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.status) queryParams.append('status', params.status);
+
+    return this.request(`/competitors?${queryParams}`);
+  }
+
+  async getCompetitor(id: string) {
+    return this.request(`/competitors/${id}`);
+  }
+
+  async createCompetitor(competitor: any) {
+    return this.request('/competitors', {
+      method: 'POST',
+      body: JSON.stringify(competitor),
+    });
+  }
+
+  async updateCompetitor(id: string, competitor: any) {
+    return this.request(`/competitors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(competitor),
+    });
+  }
+
+  async deleteCompetitor(id: string) {
+    return this.request(`/competitors/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Import
-  async importData(data: { companies?: any[]; contacts?: any[]; opportunities?: any[] }) {
+  async importData(data: { companies?: any[]; contacts?: any[]; opportunities?: any[]; competitors?: any[] }) {
     return this.request('/import', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async validateImportData(data: { companies?: any[]; contacts?: any[]; opportunities?: any[] }) {
+  async validateImportData(data: { companies?: any[]; contacts?: any[]; opportunities?: any[]; competitors?: any[] }) {
     return this.request('/import/validate', {
       method: 'POST',
       body: JSON.stringify(data),
