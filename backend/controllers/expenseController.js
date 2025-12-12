@@ -79,8 +79,11 @@ const getExpense = asyncHandler(async (req, res) => {
 // @route   POST /api/expenses
 // @access  Private
 const createExpense = asyncHandler(async (req, res) => {
+  const { company_id, ...expenseFields } = req.body;
+
   const expenseData = {
-    ...req.body,
+    ...expenseFields,
+    company: company_id,
     createdBy: req.user.id
   };
 
@@ -99,9 +102,16 @@ const createExpense = asyncHandler(async (req, res) => {
 // @route   PUT /api/expenses/:id
 // @access  Private
 const updateExpense = asyncHandler(async (req, res) => {
+  const { company_id, ...updateFields } = req.body;
+
+  const updateData = {
+    ...updateFields,
+    ...(company_id !== undefined && { company: company_id })
+  };
+
   const expense = await Expense.findOneAndUpdate(
     { _id: req.params.id, createdBy: req.user.id },
-    req.body,
+    updateData,
     { new: true, runValidators: true }
   )
   .populate('opportunity_id', 'title')

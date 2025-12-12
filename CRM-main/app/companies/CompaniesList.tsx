@@ -23,10 +23,20 @@ export default function CompaniesList({
     <div className="space-y-6">
       {companies.map((company) => {
         // Handle address object or string
-        const addressObj = typeof company.address === 'object' ? company.address : null;
-        const addressString = typeof company.address === 'string' ? company.address : null;
-        const hasAddress = (addressString && addressString.trim()) ||
-                          (addressObj && (addressObj.street || addressObj.city || addressObj.state || addressObj.country || addressObj.zipCode));
+        const addressObj =
+          typeof company.address === "object" && company.address !== null
+            ? company.address
+            : null;
+        const addressString =
+          typeof company.address === "string" ? company.address : null;
+        const hasAddress =
+          (addressString && addressString.trim()) ||
+          (addressObj &&
+            (addressObj.street ||
+              addressObj.city ||
+              addressObj.state ||
+              addressObj.country ||
+              addressObj.zipCode));
 
         const isSelected = selectedCompany?.id === company.id;
 
@@ -34,7 +44,7 @@ export default function CompaniesList({
           <Card
             key={company.id}
             className={`p-6 hover:shadow-lg transition cursor-pointer ${
-              isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              isSelected ? "ring-2 ring-blue-500 bg-blue-50" : ""
             }`}
             onClick={() => onSelect(company)}
           >
@@ -42,7 +52,9 @@ export default function CompaniesList({
               <div>
                 <h3 className="text-xl font-semibold">{company.name}</h3>
                 {company.sector && (
-                  <Badge variant="outline" className="mt-1">{company.sector}</Badge>
+                  <Badge variant="outline" className="mt-1">
+                    {company.sector}
+                  </Badge>
                 )}
               </div>
 
@@ -75,12 +87,18 @@ export default function CompaniesList({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
-                <h4 className="font-medium text-muted-foreground">Basic Information</h4>
+                <h4 className="font-medium text-muted-foreground">
+                  Basic Information
+                </h4>
                 {company.placeOfOffice && (
-                  <div><strong>Place of Office:</strong> {company.placeOfOffice}</div>
+                  <div>
+                    <strong>Place of Office:</strong> {company.placeOfOffice}
+                  </div>
                 )}
                 {company.headOffice && (
-                  <div><strong>Headquarters:</strong> {company.headOffice}</div>
+                  <div>
+                    <strong>Headquarters:</strong> {company.headOffice}
+                  </div>
                 )}
                 {company.website && (
                   <div>
@@ -88,6 +106,7 @@ export default function CompaniesList({
                     <a
                       href={company.website}
                       target="_blank"
+                      rel="noreferrer"
                       className="text-blue-500 hover:underline"
                     >
                       {company.website}
@@ -108,11 +127,17 @@ export default function CompaniesList({
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-medium text-muted-foreground">Point of Contact</h4>
+                <h4 className="font-medium text-muted-foreground">
+                  Point of Contact
+                </h4>
                 {company.poc?.name ? (
                   <div>
-                    <div><strong>Name:</strong> {company.poc.name}</div>
-                    <div><strong>Importance:</strong> {company.poc.importance}</div>
+                    <div>
+                      <strong>Name:</strong> {company.poc.name}
+                    </div>
+                    <div>
+                      <strong>Importance:</strong> {company.poc.importance}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-muted-foreground">Not specified</div>
@@ -127,22 +152,34 @@ export default function CompaniesList({
                 </h4>
                 <div className="text-sm space-y-1">
                   {addressObj?.street && (
-                    <div><strong>Street:</strong> {addressObj.street}</div>
+                    <div>
+                      <strong>Street:</strong> {addressObj.street}
+                    </div>
                   )}
                   {addressObj?.city && (
-                    <div><strong>City:</strong> {addressObj.city}</div>
+                    <div>
+                      <strong>City:</strong> {addressObj.city}
+                    </div>
                   )}
                   {addressObj?.state && (
-                    <div><strong>State:</strong> {addressObj.state}</div>
+                    <div>
+                      <strong>State:</strong> {addressObj.state}
+                    </div>
                   )}
                   {addressObj?.country && (
-                    <div><strong>Country:</strong> {addressObj.country}</div>
+                    <div>
+                      <strong>Country:</strong> {addressObj.country}
+                    </div>
                   )}
                   {addressObj?.zipCode && (
-                    <div><strong>Zip Code:</strong> {addressObj.zipCode}</div>
+                    <div>
+                      <strong>Zip Code:</strong> {addressObj.zipCode}
+                    </div>
                   )}
                   {addressString && (
-                    <div><strong>Address:</strong> {addressString}</div>
+                    <div>
+                      <strong>Address:</strong> {addressString}
+                    </div>
                   )}
                 </div>
               </div>
@@ -155,11 +192,35 @@ export default function CompaniesList({
                 </h4>
                 <div className="space-y-3">
                   {company.contacts.map((contact, index) => (
-                    <div key={index} className="p-3 bg-muted/50 rounded-lg text-sm">
-                      <div className="font-medium">{contact.name}</div>
-                      {contact.role && <div><strong>Role:</strong> {contact.role}</div>}
-                      {contact.phone && <div><strong>Phone:</strong> {contact.phone}</div>}
-                      {contact.email && (
+                    <div
+                      key={index}
+                      className="p-3 bg-muted/50 rounded-lg text-sm"
+                    >
+                      <div className="font-medium">
+                        {/* handle both string and object contacts safely */}
+                        {typeof contact === "string"
+                          ? contact
+                          : // prefer first_name/last_name if present, otherwise try name
+                            (contact.first_name || contact.last_name
+                              ? `${contact.first_name ?? ""} ${
+                                  contact.last_name ?? ""
+                                }`.trim()
+                              : contact.name ?? "Unnamed")}
+                      </div>
+
+                      {typeof contact !== "string" && contact.position && (
+                        <div>
+                          <strong>Role:</strong> {contact.position}
+                        </div>
+                      )}
+
+                      {typeof contact !== "string" && contact.phone && (
+                        <div>
+                          <strong>Phone:</strong> {contact.phone}
+                        </div>
+                      )}
+
+                      {typeof contact !== "string" && contact.email && (
                         <div>
                           <strong>Email:</strong>{" "}
                           <a
@@ -169,9 +230,6 @@ export default function CompaniesList({
                             {contact.email}
                           </a>
                         </div>
-                      )}
-                      {contact.importance && (
-                        <div><strong>Importance:</strong> {contact.importance}</div>
                       )}
                     </div>
                   ))}

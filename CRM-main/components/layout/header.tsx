@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useCRMStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth-context';
 import { useState, useEffect } from 'react';
@@ -284,7 +285,7 @@ export function Header({ onMenuClick, onCompetitorToggle, competitorCount }: Hea
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* High Priority Opportunities */}
                   {opportunities.filter((o: Opportunity) => o.priority === 'high' && o.status !== 'closed_win' && o.status !== 'lost').slice(0, 3).map((opportunity: Opportunity) => (
                     <div key={opportunity.id} className="flex items-start gap-3 p-3 hover:bg-accent rounded-lg cursor-pointer">
@@ -302,6 +303,9 @@ export function Header({ onMenuClick, onCompetitorToggle, competitorCount }: Hea
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* User Menu */}
         <Popover open={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>

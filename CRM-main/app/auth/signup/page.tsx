@@ -68,13 +68,13 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-700 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         <div className="absolute top-0 left-0 -z-10">
-          <div className="w-96 h-96 bg-gradient-to-br from-emerald-200/30 to-green-200/30 rounded-full blur-3xl" />
+          <div className="w-96 h-96 bg-gradient-to-br from-emerald-200/30 to-green-200/30 dark:from-emerald-900/20 dark:to-green-900/20 rounded-full blur-3xl" />
         </div>
 
-        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm animate-in zoom-in-95 duration-500">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-card/90 backdrop-blur-sm animate-in zoom-in-95 duration-500">
           <CardContent className="pt-8 pb-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-500 rounded-3xl mb-6 shadow-lg shadow-emerald-500/25 relative">
@@ -86,10 +86,10 @@ export default function SignupPage() {
               <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-3">
                 User Created Successfully!
               </h2>
-              <p className="text-gray-600 mb-4 text-lg">
+              <p className="text-muted-foreground mb-4 text-lg">
                 Your account has been created. You can now sign in with your credentials.
               </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 Redirecting to login page...
               </div>
@@ -101,14 +101,14 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-700 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
       <div className="absolute top-0 right-0 -z-10">
-        <div className="w-96 h-96 bg-gradient-to-bl from-purple-200/30 to-indigo-200/30 rounded-full blur-3xl" />
+        <div className="w-96 h-96 bg-gradient-to-bl from-purple-200/30 to-indigo-200/30 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-full blur-3xl" />
       </div>
       <div className="absolute bottom-0 left-0 -z-10">
-        <div className="w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 rounded-full blur-3xl" />
+        <div className="w-96 h-96 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-lg animate-in slide-in-from-bottom-4 duration-700">
@@ -120,17 +120,17 @@ export default function SignupPage() {
               <Shield className="h-3 w-3 text-emerald-800" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent mb-3">
             Join CRM Pro
           </h1>
-          <p className="text-gray-600 text-lg">Create your account to get started with professional CRM</p>
+          <p className="text-muted-foreground text-lg">Create your account to get started with professional CRM</p>
         </div>
 
         {/* Signup Form */}
-        <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+        <Card className="shadow-2xl border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-bold text-center text-gray-900">Create Account</CardTitle>
-            <CardDescription className="text-center text-gray-600">
+            <CardTitle className="text-2xl font-bold text-center text-foreground">Create Account</CardTitle>
+            <CardDescription className="text-center text-muted-foreground">
               Fill in your details to create your CRM Pro account
             </CardDescription>
           </CardHeader>
@@ -144,11 +144,11 @@ export default function SignupPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-3">
-                  <Label htmlFor="firstName" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="firstName" className="text-sm font-semibold text-foreground">
                     First Name
                   </Label>
                   <div className="relative group">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-purple-500 dark:group-focus-within:text-purple-400 transition-colors">
                       <User className="h-5 w-5" />
                     </div>
                     <Input
@@ -157,13 +157,13 @@ export default function SignupPage() {
                       placeholder="Enter your first name"
                       value={formData.firstName}
                       onChange={(e) => handleChange('firstName', e.target.value)}
-                      className="pl-12 h-12 text-base border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 bg-gray-50/50 focus:bg-white transition-all duration-200"
+                      className="pl-12 h-12 text-base border-input focus:border-purple-500 focus:ring-purple-500/20 bg-background focus:bg-background transition-all duration-200"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="lastName" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="lastName" className="text-sm font-semibold text-foreground">
                     Last Name
                   </Label>
                   <div className="relative group">
@@ -173,18 +173,18 @@ export default function SignupPage() {
                       placeholder="Enter your last name"
                       value={formData.lastName}
                       onChange={(e) => handleChange('lastName', e.target.value)}
-                      className="pl-4 h-12 text-base border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 bg-gray-50/50 focus:bg-white transition-all duration-200"
+                      className="pl-4 h-12 text-base border-input focus:border-purple-500 focus:ring-purple-500/20 bg-background focus:bg-background transition-all duration-200"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="email" className="text-sm font-semibold text-foreground">
                   Email Address
                 </Label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-purple-500 dark:group-focus-within:text-purple-400 transition-colors">
                     <Mail className="h-5 w-5" />
                   </div>
                   <Input
@@ -193,18 +193,18 @@ export default function SignupPage() {
                     placeholder="Enter your email address"
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
-                    className="pl-12 h-12 text-base border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 bg-gray-50/50 focus:bg-white transition-all duration-200"
+                    className="pl-12 h-12 text-base border-input focus:border-purple-500 focus:ring-purple-500/20 bg-background focus:bg-background transition-all duration-200"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="password" className="text-sm font-semibold text-foreground">
                   Password
                 </Label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-purple-500 dark:group-focus-within:text-purple-400 transition-colors">
                     <Lock className="h-5 w-5" />
                   </div>
                   <Input
@@ -213,29 +213,29 @@ export default function SignupPage() {
                     placeholder="Create a strong password"
                     value={formData.password}
                     onChange={(e) => handleChange('password', e.target.value)}
-                    className="pl-12 pr-12 h-12 text-base border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 bg-gray-50/50 focus:bg-white transition-all duration-200"
+                    className="pl-12 pr-12 h-12 text-base border-input focus:border-purple-500 focus:ring-purple-500/20 bg-background focus:bg-background transition-all duration-200"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Must be at least 6 characters long
                 </p>
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="confirmPassword" className="text-sm font-semibold text-foreground">
                   Confirm Password
                 </Label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-purple-500 dark:group-focus-within:text-purple-400 transition-colors">
                     <Lock className="h-5 w-5" />
                   </div>
                   <Input
@@ -244,13 +244,13 @@ export default function SignupPage() {
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                    className="pl-12 pr-12 h-12 text-base border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 bg-gray-50/50 focus:bg-white transition-all duration-200"
+                    className="pl-12 pr-12 h-12 text-base border-input focus:border-purple-500 focus:ring-purple-500/20 bg-background focus:bg-background transition-all duration-200"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -278,17 +278,17 @@ export default function SignupPage() {
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">Already have an account?</span>
+                <span className="px-4 bg-card text-muted-foreground">Already have an account?</span>
               </div>
             </div>
 
             <div className="text-center">
               <Link
                 href="/auth/login"
-                className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold transition-colors group"
+                className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-semibold transition-colors group"
               >
                 Sign in to your account
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />

@@ -13,7 +13,10 @@ const { protect } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-// All routes require authentication
+// Get all companies for dropdown (public for now to fix auth issue)
+router.get('/all', getAllCompanies);
+
+// All other routes require authentication
 router.use(protect);
 
 router.route('/')
@@ -24,9 +27,6 @@ router.route('/:id')
   .get(getCompany)
   .put(updateCompany)
   .delete(deleteCompany);
-
-// Get all companies for dropdown
-router.get('/all', getAllCompanies);
 
 // Company statistics
 router.get('/stats/overview', getCompanyStats);

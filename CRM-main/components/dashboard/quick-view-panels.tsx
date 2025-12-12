@@ -85,8 +85,8 @@ export function QuickViewPanels({
                   <p className="text-sm">No leads yet</p>
                 </div>
               ) : (
-                leadsOpportunities.map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                leadsOpportunities.map((lead, index) => (
+                  <div key={lead.id || `lead-${index}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{lead.title}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -148,8 +148,8 @@ export function QuickViewPanels({
                   <p className="text-sm">No contacts yet</p>
                 </div>
               ) : (
-                recentContacts.map((contact) => (
-                  <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                recentContacts.map((contact, index) => (
+                  <div key={contact.id || `contact-${index}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {contact.first_name} {contact.last_name}
@@ -212,8 +212,8 @@ export function QuickViewPanels({
                   <p className="text-sm">No opportunities yet</p>
                 </div>
               ) : (
-                hotOpportunities.map((opp) => (
-                  <div key={opp.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                hotOpportunities.map((opp, index) => (
+                  <div key={opp.id || `opp-${index}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-sm font-medium truncate">{opp.title}</p>

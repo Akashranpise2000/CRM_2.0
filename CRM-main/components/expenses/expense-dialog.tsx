@@ -60,7 +60,7 @@ export function ExpenseDialog({ open, onOpenChange, expense }: ExpenseDialogProp
     defaultValues: {
       title: '',
       amount: 0,
-      category: '',
+      category: 'Miscellaneous',
       date: new Date().toISOString().split('T')[0],
       opportunity_id: '',
       company_id: '',

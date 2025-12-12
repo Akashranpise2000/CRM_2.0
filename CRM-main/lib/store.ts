@@ -811,45 +811,65 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
   },
 
   addExpense: async (expense) => {
-    console.log('Adding expense locally:', expense);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const newExpense: Expense = {
-      ...expense,
-      id: 'expense-' + Date.now(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      opportunity: expense.opportunity_id ? get().opportunities.find(o => o.id === expense.opportunity_id) : undefined
-    };
-
-    set({ expenses: [newExpense, ...get().expenses] });
-    console.log('Expense added successfully, total expenses:', get().expenses.length + 1);
+    console.log('Adding expense via API:', expense);
+    try {
+      const response = await apiClient.createExpense(expense);
+      if (response.success) {
+        const apiExpense = response.data as any;
+        const newExpense: Expense = {
+          ...apiExpense,
+          id: apiExpense._id || apiExpense.id,
+          opportunity: apiExpense.opportunity_id ? get().opportunities.find(o => o.id === apiExpense.opportunity_id) : undefined,
+          company: apiExpense.company ? { ...apiExpense.company, id: apiExpense.company._id || apiExpense.company.id } : undefined
+        };
+        set({ expenses: [newExpense, ...get().expenses] });
+        console.log('Expense added successfully, total expenses:', get().expenses.length + 1);
+      } else {
+        throw new Error(response.error || 'Failed to create expense');
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      throw error;
+    }
   },
 
   updateExpense: async (id, expense) => {
-    console.log('Updating expense locally:', id, expense);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const updatedExpense: Expense = {
-      ...get().expenses.find(e => e.id === id)!,
-      ...expense,
-      updated_at: new Date().toISOString(),
-      opportunity: expense.opportunity_id ? get().opportunities.find(o => o.id === expense.opportunity_id) : get().expenses.find(e => e.id === id)?.opportunity
-    };
-
-    set({ expenses: get().expenses.map(e => e.id === id ? updatedExpense : e) });
-    console.log('Expense updated successfully');
+    console.log('Updating expense via API:', id, expense);
+    try {
+      const response = await apiClient.updateExpense(id, expense);
+      if (response.success) {
+        const apiExpense = response.data as any;
+        const updatedExpense: Expense = {
+          ...apiExpense,
+          id: apiExpense._id || apiExpense.id,
+          opportunity: apiExpense.opportunity_id ? get().opportunities.find(o => o.id === apiExpense.opportunity_id) : undefined,
+          company: apiExpense.company ? { ...apiExpense.company, id: apiExpense.company._id || apiExpense.company.id } : undefined
+        };
+        set({ expenses: get().expenses.map(e => e.id === id ? updatedExpense : e) });
+        console.log('Expense updated successfully');
+      } else {
+        throw new Error(response.error || 'Failed to update expense');
+      }
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      throw error;
+    }
   },
 
   deleteExpense: async (id) => {
-    console.log('Deleting expense locally:', id);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    set({ expenses: get().expenses.filter(e => e.id !== id) });
-    console.log('Expense deleted successfully');
+    console.log('Deleting expense via API:', id);
+    try {
+      const response = await apiClient.deleteExpense(id);
+      if (response.success) {
+        set({ expenses: get().expenses.filter(e => e.id !== id) });
+        console.log('Expense deleted successfully');
+      } else {
+        throw new Error(response.error || 'Failed to delete expense');
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw error;
+    }
   },
 
   updateSettings: async (settings) => {
@@ -877,6 +897,16 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
     try {
       const response = await apiClient.importData(data);
       if (response.success) {
+        // Reset cache flags to force refresh of all data after import
+        set({
+          contactsLoaded: false,
+          companiesLoaded: false,
+          opportunitiesLoaded: false,
+          activitiesLoaded: false,
+          expensesLoaded: false,
+          competitorsLoaded: false
+        });
+
         // Refresh all data after import
         await Promise.all([
           get().fetchContacts(),
