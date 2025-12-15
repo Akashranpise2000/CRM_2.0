@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   Eye, 
   Briefcase, 
@@ -54,10 +53,9 @@ export function WidgetsSection({ opportunities, expenses, contacts, companies }:
         <CardContent>
           <div className="text-2xl font-bold">{opportunities.length}</div>
           <div className="mt-2">
-            <Progress
-              value={(opportunities.filter(o => o.status === 'closed_win').length / opportunities.length) * 100}
-              className="h-2"
-            />
+            <div className="h-2 bg-gray-200 rounded-full">
+              <div className="h-full bg-blue-600 rounded-full" style={{ width: `${(opportunities.filter(o => o.status === 'closed_win').length / Math.max(opportunities.length, 1)) * 100}%` }}></div>
+            </div>
             <div className="text-xs text-muted-foreground mt-1">
               {opportunities.filter(o => o.status === 'closed_win').length} won
             </div>
@@ -125,12 +123,9 @@ export function WidgetsSection({ opportunities, expenses, contacts, companies }:
               : 0}%
           </div>
           <div className="mt-2">
-            <Progress
-              value={opportunities.length > 0
-                ? (opportunities.filter(o => o.status === 'closed_win').length / opportunities.length) * 100
-                : 0}
-              className="h-2"
-            />
+            <div className="h-2 bg-gray-200 rounded-full">
+              <div className="h-full bg-purple-600 rounded-full" style={{ width: `${opportunities.length > 0 ? (opportunities.filter(o => o.status === 'closed_win').length / opportunities.length) * 100 : 0}%` }}></div>
+            </div>
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
             Win rate this quarter
