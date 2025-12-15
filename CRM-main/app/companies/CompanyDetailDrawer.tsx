@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useCRMStore } from "@/lib/store";
-import type { Company } from "@/types";
+import type { Company, Contact } from "@/types";
 import { Mail, Phone, Building2, Globe, MapPin, Users, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -192,16 +192,19 @@ export default function CompanyDetailDrawer({
                   <div>
                     <strong>Current Contact Persons:</strong>
                     <div className="ml-4 mt-1 space-y-2">
-                      {company.contacts.map((contact, index) => (
-                        <div key={index} className="border-l-2 border-muted pl-3">
-                          <div><strong>Contact {index + 1}:</strong></div>
-                          <div>Name: {contact.name}</div>
-                          {contact.role && <div>Role: {contact.role}</div>}
-                          {contact.phone && <div>Phone: {contact.phone}</div>}
-                          {contact.email && <div>Email: {contact.email}</div>}
-                          {contact.importance && <div>Importance: {getImportanceLabel(contact.importance)}</div>}
-                        </div>
-                      ))}
+                      {company.contacts && company.contacts.map((contact, index) => {
+                        if (typeof contact === 'string') return null;
+                        return (
+                          <div key={index} className="border-l-2 border-muted pl-3">
+                            <div><strong>Contact {index + 1}:</strong></div>
+                            <div>Name: {contact.name}</div>
+                            {contact.role && <div>Role: {contact.role}</div>}
+                            {contact.phone && <div>Phone: {contact.phone}</div>}
+                            {contact.email && <div>Email: {contact.email}</div>}
+                            {contact.importance && <div>Importance: {getImportanceLabel(contact.importance)}</div>}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -219,37 +222,40 @@ export default function CompanyDetailDrawer({
                 <p className="text-sm text-muted-foreground">No contacts added yet.</p>
               )}
 
-              {company.contacts && company.contacts.map((contact, index) => (
-                <div key={index} className="p-3 border rounded-lg space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{contact.name}</p>
-                      {contact.role && (
-                        <p className="text-sm text-muted-foreground">{contact.role}</p>
-                      )}
+              {company.contacts && company.contacts.map((contact, index) => {
+                if (typeof contact === 'string') return null;
+                return (
+                  <div key={index} className="p-3 border rounded-lg space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{contact.name}</p>
+                        {contact.role && (
+                          <p className="text-sm text-muted-foreground">{contact.role}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-xs">{getImportanceLabel(contact.importance)}</Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs">{getImportanceLabel(contact.importance)}</Badge>
+
+                    {contact.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <a href={`mailto:${contact.email}`} className="text-blue-500 hover:underline">
+                          {contact.email}
+                        </a>
+                      </div>
+                    )}
+
+                    {contact.phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <a href={`tel:${contact.phone}`} className="text-blue-500 hover:underline">
+                          {contact.phone}
+                        </a>
+                      </div>
+                    )}
                   </div>
-
-                  {contact.email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <a href={`mailto:${contact.email}`} className="text-blue-500 hover:underline">
-                        {contact.email}
-                      </a>
-                    </div>
-                  )}
-
-                  {contact.phone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <a href={`tel:${contact.phone}`} className="text-blue-500 hover:underline">
-                        {contact.phone}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 

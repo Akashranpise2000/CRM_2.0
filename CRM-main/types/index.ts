@@ -6,6 +6,8 @@ export interface Contact {
   email?: string;
   phone?: string;
   position?: string;
+  role?: string;
+  importance?: string;
   company_id?: string;
   avatar_url?: string;
   created_at?: string;
