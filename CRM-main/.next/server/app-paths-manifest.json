@@ -1,3 +1,18 @@
 {
-  "/page": "app/page.js"
+  "/_not-found": "app/_not-found.js",
+  "/page": "app/page.js",
+  "/calendar/page": "app/calendar/page.js",
+  "/competitors/page": "app/competitors/page.js",
+  "/companies/page": "app/companies/page.js",
+  "/expenses/page": "app/expenses/page.js",
+  "/contacts/page": "app/contacts/page.js",
+  "/import/page": "app/import/page.js",
+  "/leads/page": "app/leads/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/opportunities/page": "app/opportunities/page.js",
+  "/contacts/add/page": "app/contacts/add/page.js",
+  "/contacts/[id]/page": "app/contacts/[id]/page.js",
+  "/leads/pipeline/page": "app/leads/pipeline/page.js",
+  "/auth/signup/page": "app/auth/signup/page.js",
+  "/auth/login/page": "app/auth/login/page.js"
 }

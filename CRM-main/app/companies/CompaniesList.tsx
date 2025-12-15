@@ -6,6 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import type { Company } from "@/types";
 import { Pencil, Trash2 } from "lucide-react";
 
+/* ✅ Type guard for contact object */
+function isContactObject(
+  contact: unknown
+): contact is {
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  position?: string;
+  phone?: string;
+  email?: string;
+} {
+  return typeof contact === "object" && contact !== null;
+}
+
 export default function CompaniesList({
   companies,
   onSelect,
@@ -22,32 +36,39 @@ export default function CompaniesList({
   return (
     <div className="space-y-6">
       {companies.map((company) => {
-        // Handle address object or string
+        /* ✅ Normalize optional fields */
+        const contacts = company.contacts ?? [];
+
         const addressObj =
           typeof company.address === "object" && company.address !== null
             ? company.address
             : null;
+
         const addressString =
           typeof company.address === "string" ? company.address : null;
+
         const hasAddress =
-          (addressString && addressString.trim()) ||
-          (addressObj &&
-            (addressObj.street ||
-              addressObj.city ||
-              addressObj.state ||
-              addressObj.country ||
-              addressObj.zipCode));
+          Boolean(addressString?.trim()) ||
+          Boolean(
+            addressObj &&
+              (addressObj.street ||
+                addressObj.city ||
+                addressObj.state ||
+                addressObj.country ||
+                addressObj.zipCode)
+          );
 
         const isSelected = selectedCompany?.id === company.id;
 
         return (
           <Card
             key={company.id}
-            className={`p-6 hover:shadow-lg transition cursor-pointer ${
+            onClick={() => onSelect(company)}
+            className={`p-6 cursor-pointer hover:shadow-lg transition ${
               isSelected ? "ring-2 ring-blue-500 bg-blue-50" : ""
             }`}
-            onClick={() => onSelect(company)}
           >
+            {/* Header */}
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-xl font-semibold">{company.name}</h3>
@@ -66,7 +87,6 @@ export default function CompaniesList({
                     e.stopPropagation();
                     onEdit(company);
                   }}
-                  className="hover:bg-blue-50"
                 >
                   <Pencil className="w-5 h-5 text-blue-600" />
                 </Button>
@@ -78,28 +98,31 @@ export default function CompaniesList({
                     e.stopPropagation();
                     onDelete(company);
                   }}
-                  className="hover:bg-red-50"
                 >
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </Button>
               </div>
             </div>
 
+            {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <h4 className="font-medium text-muted-foreground">
                   Basic Information
                 </h4>
+
                 {company.placeOfOffice && (
                   <div>
                     <strong>Place of Office:</strong> {company.placeOfOffice}
                   </div>
                 )}
+
                 {company.headOffice && (
                   <div>
                     <strong>Headquarters:</strong> {company.headOffice}
                   </div>
                 )}
+
                 {company.website && (
                   <div>
                     <strong>Website:</strong>{" "}
@@ -113,6 +136,7 @@ export default function CompaniesList({
                     </a>
                   </div>
                 )}
+
                 {company.email && (
                   <div>
                     <strong>Email:</strong>{" "}
@@ -126,101 +150,105 @@ export default function CompaniesList({
                 )}
               </div>
 
+              {/* POC */}
               <div className="space-y-2">
                 <h4 className="font-medium text-muted-foreground">
                   Point of Contact
                 </h4>
+
                 {company.poc?.name ? (
-                  <div>
+                  <>
                     <div>
                       <strong>Name:</strong> {company.poc.name}
                     </div>
                     <div>
                       <strong>Importance:</strong> {company.poc.importance}
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <div className="text-muted-foreground">Not specified</div>
                 )}
               </div>
             </div>
 
+            {/* Address */}
             {hasAddress && (
-              <div className="mt-4 pt-4 border-t">
+              <div className="mt-4 pt-4 border-t text-sm space-y-1">
                 <h4 className="font-medium text-muted-foreground mb-2">
                   Address
                 </h4>
-                <div className="text-sm space-y-1">
-                  {addressObj?.street && (
-                    <div>
-                      <strong>Street:</strong> {addressObj.street}
-                    </div>
-                  )}
-                  {addressObj?.city && (
-                    <div>
-                      <strong>City:</strong> {addressObj.city}
-                    </div>
-                  )}
-                  {addressObj?.state && (
-                    <div>
-                      <strong>State:</strong> {addressObj.state}
-                    </div>
-                  )}
-                  {addressObj?.country && (
-                    <div>
-                      <strong>Country:</strong> {addressObj.country}
-                    </div>
-                  )}
-                  {addressObj?.zipCode && (
-                    <div>
-                      <strong>Zip Code:</strong> {addressObj.zipCode}
-                    </div>
-                  )}
-                  {addressString && (
-                    <div>
-                      <strong>Address:</strong> {addressString}
-                    </div>
-                  )}
-                </div>
+
+                {addressObj?.street && (
+                  <div>
+                    <strong>Street:</strong> {addressObj.street}
+                  </div>
+                )}
+                {addressObj?.city && (
+                  <div>
+                    <strong>City:</strong> {addressObj.city}
+                  </div>
+                )}
+                {addressObj?.state && (
+                  <div>
+                    <strong>State:</strong> {addressObj.state}
+                  </div>
+                )}
+                {addressObj?.country && (
+                  <div>
+                    <strong>Country:</strong> {addressObj.country}
+                  </div>
+                )}
+                {addressObj?.zipCode && (
+                  <div>
+                    <strong>Zip Code:</strong> {addressObj.zipCode}
+                  </div>
+                )}
+                {addressString && (
+                  <div>
+                    <strong>Address:</strong> {addressString}
+                  </div>
+                )}
               </div>
             )}
 
-            {company.contacts && company.contacts.length > 0 && (
+            {/* Contacts */}
+            {contacts.length > 0 && (
               <div className="mt-4 pt-4 border-t">
                 <h4 className="font-medium text-muted-foreground mb-2">
-                  Contact Persons ({company.contacts.length})
+                  Contact Persons ({contacts.length})
                 </h4>
+
                 <div className="space-y-3">
-                  {company.contacts.map((contact, index) => (
+                  {contacts.map((contact, index) => (
                     <div
                       key={index}
                       className="p-3 bg-muted/50 rounded-lg text-sm"
                     >
                       <div className="font-medium">
-                        {/* handle both string and object contacts safely */}
                         {typeof contact === "string"
                           ? contact
-                          : // prefer first_name/last_name if present, otherwise try name
-                            (contact.first_name || contact.last_name
-                              ? `${contact.first_name ?? ""} ${
-                                  contact.last_name ?? ""
-                                }`.trim()
-                              : contact.name ?? "Unnamed")}
+                          : isContactObject(contact)
+                          ? `${contact.first_name ?? ""} ${
+                              contact.last_name ?? ""
+                            }`.trim() ||
+                            contact.name ||
+                            "Unnamed"
+                          : "Unnamed"}
                       </div>
 
-                      {typeof contact !== "string" && contact.position && (
+                      {isContactObject(contact) && contact.position && (
                         <div>
                           <strong>Role:</strong> {contact.position}
                         </div>
                       )}
 
-                      {typeof contact !== "string" && contact.phone && (
+                      {isContactObject(contact) && contact.phone && (
                         <div>
                           <strong>Phone:</strong> {contact.phone}
                         </div>
                       )}
 
-                      {typeof contact !== "string" && contact.email && (
+                      {isContactObject(contact) && contact.email && (
                         <div>
                           <strong>Email:</strong>{" "}
                           <a
